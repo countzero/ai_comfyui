@@ -77,6 +77,6 @@ $durationInSeconds = [Math]::Floor([Decimal]($stopwatch.Elapsed.TotalSeconds))
 
 Write-Host "Successfully finished the build in ${durationInSeconds} seconds." -ForegroundColor "Yellow"
 
-Write-Host "Starting ComfyUI..." -ForegroundColor "Yellow"
-
-python .\vendor\ComfyUI\main.py
+# We are delegating the start of the ComfyUI server
+# to a separate script for modularity.
+& "$PSScriptRoot/start_comfyui.ps1"
