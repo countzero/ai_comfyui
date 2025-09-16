@@ -1,0 +1,8 @@
+#
+# .gitignore
+#
+
+*.sublime-workspace
+*.log
+
+__pycache__

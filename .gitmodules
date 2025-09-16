@@ -1,0 +1,3 @@
+[submodule "vendor/ComfyUI"]
+	path = vendor/ComfyUI
+	url = git@github.com:comfyanonymous/ComfyUI.git
