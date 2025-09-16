@@ -48,7 +48,6 @@ if (!$version) {
     ).tag_name
 }
 
-
 Write-Host "Building the ComfyUI project..." -ForegroundColor "Yellow"
 Write-Host "Version: ${version}" -ForegroundColor "DarkYellow"
 
@@ -81,4 +80,3 @@ Write-Host "Successfully finished the build in ${durationInSeconds} seconds." -F
 Write-Host "Starting ComfyUI..." -ForegroundColor "Yellow"
 
 python .\vendor\ComfyUI\main.py
-
