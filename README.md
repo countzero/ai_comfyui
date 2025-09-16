@@ -1,6 +1,6 @@
 # ComfyUI
 
-Automation to rebuild and start [ComfyUI](https://github.com/comfyanonymous/ComfyUI). It automates the following steps:
+Instructions on how to manually install [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on a machine with a NVIDIA GPU. This includes a script that automates the following steps:
 
 1. Fetching the latest version of [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
 2. Installing specifiy PyTorch packages with NVIDIA support
