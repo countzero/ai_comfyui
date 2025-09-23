@@ -5,3 +5,7 @@ torch==2.8.0+cu129
 
 # We are importing the ComfyUI project dependencies.
 --requirement ./vendor/ComfyUI/requirements.txt
+
+# We are importing all custom nodes project dependencies.
+--requirement ./vendor/ComfyUI/custom_nodes/ComfyUI-GGUF/requirements.txt
+--requirement ./vendor/ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite/requirements.txt

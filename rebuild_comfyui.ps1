@@ -59,7 +59,45 @@ git submodule update --remote --merge --force
 
 # We are checking out a specific version (tag / commit)
 # of the repository to enable quick debugging.
-git -C ./vendor/ComfyUI checkout $version
+git -C .\vendor\ComfyUI checkout $version
+
+# Copies custom nodes into the correct directory.
+function Copy-CustomNodes {
+
+    Param ([String] $name)
+
+    $sourcePath = "vendor\${name}"
+    $destinationPath = "vendor\ComfyUI\custom_nodes\${name}"
+
+    Write-Host "Copying custom node from '${sourcePath}' to '${destinationPath}'..." -ForegroundColor "Yellow"
+
+    # We want to make sure that only the currently checked out files are present.
+    if (Test-Path $destinationPath) {
+        Write-Host "Removing existing directory '${destinationPath}'..." -ForegroundColor "DarkYellow"
+        Remove-Item -Path $destinationPath -Recurse -Force
+    }
+
+    Write-Host "Creating destination directory '${destinationPath}'..." -ForegroundColor "DarkYellow"
+    mkdir -Force "${destinationPath}"
+
+    Get-ChildItem -Path "${sourcePath}" -Recurse | `
+    Where-Object { $_.Name -ne '.git' } | `
+    ForEach-Object {
+
+        $itemPath = $_.FullName.Replace("${sourcePath}", "${destinationPath}")
+
+        if ($_.PSIsContainer) {
+            mkdir -Force $itemPath
+        } else {
+            Copy-Item $_.FullName -Destination $itemPath
+        }
+    }
+
+    Write-Host "Successfully installed the custom node '${name}'." -ForegroundColor "Yellow"
+}
+
+Copy-CustomNodes -Name 'ComfyUI-GGUF'
+Copy-CustomNodes -Name 'ComfyUI-VideoHelperSuite'
 
 conda activate ComfyUI
 
@@ -76,7 +114,4 @@ $stopwatch.Stop()
 $durationInSeconds = [Math]::Floor([Decimal]($stopwatch.Elapsed.TotalSeconds))
 
 Write-Host "Successfully finished the build in ${durationInSeconds} seconds." -ForegroundColor "Yellow"
-
-# We are delegating the start of the ComfyUI server
-# to a separate script for modularity.
-& "$PSScriptRoot/start_comfyui.ps1"
+Write-Host "You can now start ComfyUI by executing: .\start_comfyui.ps1" -ForegroundColor "Yellow"

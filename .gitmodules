@@ -1,3 +1,9 @@
 [submodule "vendor/ComfyUI"]
 	path = vendor/ComfyUI
 	url = git@github.com:comfyanonymous/ComfyUI.git
+[submodule "vendor/ComfyUI-GGUF"]
+	path = vendor/ComfyUI-GGUF
+	url = git@github.com:city96/ComfyUI-GGUF.git
+[submodule "vendor/ComfyUI-VideoHelperSuite"]
+	path = vendor/ComfyUI-VideoHelperSuite
+	url = git@github.com:Kosinkadink/ComfyUI-VideoHelperSuite.git
