@@ -31,8 +31,11 @@ git clone --recurse-submodules git@github.com:countzero/ai_comfyui.git
 Create a new Conda environment for this project with a specific version of Python:
 
 ```PowerShell
-conda create --name ComfyUI python=3.13
+conda create --name ComfyUI python=3.14
 ```
+
+> [!NOTE]
+> ComfyUI considers Python 3.13 its best tested target. Python 3.14 works, but some custom nodes may have issues with it.
 
 ### 4. Initialize Conda for shell interaction
 

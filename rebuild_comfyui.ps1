@@ -108,6 +108,11 @@ pip install `
     --upgrade-strategy "eager" `
     --requirement ./requirements_override.txt
 
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to install the Python dependencies." -ForegroundColor "Red"
+    exit $LASTEXITCODE
+}
+
 conda list
 
 $stopwatch.Stop()

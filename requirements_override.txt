@@ -1,7 +1,15 @@
-# We are overriding the "torch" package version with a
-# specific compatible version that also supports CUDA.
---extra-index-url https://download.pytorch.org/whl/cu129
-torch==2.8.0+cu129
+# We are overriding the PyTorch packages with specific compatible
+# versions that also support CUDA.
+#
+# The cu130 index is required for NVIDIA 20 series and above and is
+# the only channel that carries torch, torchvision and torchaudio.
+#
+# The versions are capped by torchaudio, which has no build newer
+# than 2.11.0, and by torchvision 0.26.0, which pins torch==2.11.0.
+--extra-index-url https://download.pytorch.org/whl/cu130
+torch==2.11.0+cu130
+torchvision==0.26.0+cu130
+torchaudio==2.11.0+cu130
 
 # We are importing the ComfyUI project dependencies.
 --requirement ./vendor/ComfyUI/requirements.txt
