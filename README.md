@@ -66,3 +66,32 @@ Follow the ComfyUI tutorial on how to use a specific model, e.g.:
 * https://docs.comfy.org/tutorials/flux/flux-2-dev
 * https://docs.comfy.org/tutorials/flux/flux-2-klein#flux-2-klein-9b-workflows
 
+## Usage
+
+### Workflows
+
+The workflows in [`workflows`](./workflows) are the durable copies. Running
+`./start_comfyui.ps1` publishes them into ComfyUI's sidebar via
+[`deploy_workflows.ps1`](./deploy_workflows.ps1):
+
+| Sidebar | Model | Configuration |
+|---|---|---|
+| FLUX.2 Klein 9B → 1 Turbo | klein 9B distilled | 1440², 4 steps, CFG 1 |
+| FLUX.2 Klein 9B → 2 Draft | klein 9B base | 1440², 20 steps, CFG 5 |
+| FLUX.2 Klein 9B → 3 Print | klein 9B base | 1440², 28 steps, CFG 5, 4x upscale → 19 MP |
+| FLUX.2 Klein 9B → 4 Edit | klein 9B distilled | reference-sized, 4 steps, CFG 1 |
+| Utility → Upscale 4x | none | 4xNomos2_hq_dat2 |
+
+Each has an `*_api.json` twin for driving `POST /prompt` directly.
+
+> [!NOTE]
+> ComfyUI reads the sidebar from `vendor/ComfyUI/user/default/workflows`, which
+> is gitignored and is wiped by a submodule re-clone. If the sidebar is empty,
+> run `./deploy_workflows.ps1`.
+
+### Documentation
+
+* [Hardware profile: 16 GiB Ada + Klein 9B](./docs/hardware-16gb-ada.md) — current machine, measured settings
+* [Hardware profile: 24 GiB Blackwell + FLUX.2-dev](./docs/hardware-24gb-blackwell.md) — archived
+* [FLUX.2 model manifest](./docs/models.md) — sources, sizes, encoder compatibility
+

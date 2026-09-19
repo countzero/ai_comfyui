@@ -44,7 +44,7 @@
   "7": {
     "class_type": "Flux2Scheduler",
     "inputs": {
-      "steps": 20,
+      "steps": 28,
       "width": 1440,
       "height": 1440
     }

@@ -35,8 +35,8 @@
   "6": {
     "class_type": "EmptyFlux2LatentImage",
     "inputs": {
-      "width": 1024,
-      "height": 1024,
+      "width": 1440,
+      "height": 1440,
       "batch_size": 1
     }
   },
@@ -44,8 +44,8 @@
     "class_type": "Flux2Scheduler",
     "inputs": {
       "steps": 4,
-      "width": 1024,
-      "height": 1024
+      "width": 1440,
+      "height": 1440
     }
   },
   "8": {

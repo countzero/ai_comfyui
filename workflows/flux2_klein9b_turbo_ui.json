@@ -80,7 +80,7 @@
       "inputs": [],
       "outputs": [{ "name": "LATENT", "type": "LATENT", "links": [9], "slot_index": 0 }],
       "properties": { "Node name for S&R": "EmptyFlux2LatentImage" },
-      "widgets_values": [1024, 1024, 1]
+      "widgets_values": [1440, 1440, 1]
     },
     {
       "id": 7,
@@ -94,7 +94,7 @@
       "outputs": [{ "name": "SIGMAS", "type": "SIGMAS", "links": [8], "slot_index": 0 }],
       "properties": { "Node name for S&R": "Flux2Scheduler" },
       "title": "Flux2Scheduler (match latent size)",
-      "widgets_values": [4, 1024, 1024]
+      "widgets_values": [4, 1440, 1440]
     },
     {
       "id": 8,

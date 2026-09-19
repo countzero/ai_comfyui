@@ -107,7 +107,7 @@
       "outputs": [{ "name": "SIGMAS", "type": "SIGMAS", "links": [8], "slot_index": 0 }],
       "properties": { "Node name for S&R": "Flux2Scheduler" },
       "title": "Flux2Scheduler (must match latent size)",
-      "widgets_values": [20, 1440, 1440]
+      "widgets_values": [28, 1440, 1440]
     },
     {
       "id": 8,
