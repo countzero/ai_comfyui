@@ -63,5 +63,6 @@ To build ComfyUI and its depdendencies execute the script:
 
 Follow the ComfyUI tutorial on how to use a specific model, e.g.:
 
-* https://docs.comfy.org/tutorials/flux/flux1-krea-dev
+* https://docs.comfy.org/tutorials/flux/flux-2-dev
+* https://docs.comfy.org/tutorials/flux/flux-2-klein#flux-2-klein-9b-workflows
 

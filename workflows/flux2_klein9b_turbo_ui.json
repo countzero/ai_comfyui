@@ -13,7 +13,7 @@
       "inputs": [],
       "outputs": [{ "name": "MODEL", "type": "MODEL", "links": [1], "slot_index": 0 }],
       "properties": { "Node name for S&R": "UNETLoader" },
-      "widgets_values": ["flux2_dev_fp8mixed.safetensors", "default"]
+      "widgets_values": ["flux-2-klein-9b-fp8.safetensors", "default"]
     },
     {
       "id": 2,
@@ -26,7 +26,7 @@
       "inputs": [],
       "outputs": [{ "name": "CLIP", "type": "CLIP", "links": [2], "slot_index": 0 }],
       "properties": { "Node name for S&R": "CLIPLoader" },
-      "widgets_values": ["mistral_3_small_flux2_fp4_mixed.safetensors", "flux2", "default"]
+      "widgets_values": ["qwen_3_8b_fp8mixed.safetensors", "flux2", "default"]
     },
     {
       "id": 3,
@@ -44,20 +44,35 @@
     {
       "id": 4,
       "type": "CLIPTextEncode",
-      "pos": [480, 170],
+      "pos": [480, 40],
       "size": [420, 200],
       "flags": {},
       "order": 7,
       "mode": 0,
       "inputs": [{ "name": "clip", "type": "CLIP", "link": 2 }],
-      "outputs": [{ "name": "CONDITIONING", "type": "CONDITIONING", "links": [3], "slot_index": 0 }],
+      "outputs": [{ "name": "CONDITIONING", "type": "CONDITIONING", "links": [3, 4], "slot_index": 0 }],
       "properties": { "Node name for S&R": "CLIPTextEncode" },
+      "title": "Prompt",
       "widgets_values": ["An Owl with a sleeping hat with the Name \"EGON\" on it"]
+    },
+    {
+      "id": 5,
+      "type": "ConditioningZeroOut",
+      "pos": [950, 40],
+      "size": [320, 50],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [{ "name": "conditioning", "type": "CONDITIONING", "link": 4 }],
+      "outputs": [{ "name": "CONDITIONING", "type": "CONDITIONING", "links": [13], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "ConditioningZeroOut" },
+      "title": "Negative (zeroed - distilled uses CFG 1)",
+      "widgets_values": []
     },
     {
       "id": 6,
       "type": "EmptyFlux2LatentImage",
-      "pos": [480, 420],
+      "pos": [480, 290],
       "size": [340, 110],
       "flags": {},
       "order": 3,
@@ -65,12 +80,12 @@
       "inputs": [],
       "outputs": [{ "name": "LATENT", "type": "LATENT", "links": [9], "slot_index": 0 }],
       "properties": { "Node name for S&R": "EmptyFlux2LatentImage" },
-      "widgets_values": [1440, 1440, 1]
+      "widgets_values": [1024, 1024, 1]
     },
     {
       "id": 7,
       "type": "Flux2Scheduler",
-      "pos": [480, 580],
+      "pos": [480, 450],
       "size": [340, 110],
       "flags": {},
       "order": 4,
@@ -78,12 +93,13 @@
       "inputs": [],
       "outputs": [{ "name": "SIGMAS", "type": "SIGMAS", "links": [8], "slot_index": 0 }],
       "properties": { "Node name for S&R": "Flux2Scheduler" },
-      "widgets_values": [12, 1440, 1440]
+      "title": "Flux2Scheduler (match latent size)",
+      "widgets_values": [4, 1024, 1024]
     },
     {
       "id": 8,
       "type": "KSamplerSelect",
-      "pos": [480, 740],
+      "pos": [480, 610],
       "size": [340, 60],
       "flags": {},
       "order": 5,
@@ -96,7 +112,7 @@
     {
       "id": 9,
       "type": "RandomNoise",
-      "pos": [480, 850],
+      "pos": [480, 720],
       "size": [340, 90],
       "flags": {},
       "order": 6,
@@ -107,38 +123,26 @@
       "widgets_values": [42, "randomize"]
     },
     {
-      "id": 5,
-      "type": "FluxGuidance",
-      "pos": [950, 170],
-      "size": [320, 60],
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [{ "name": "conditioning", "type": "CONDITIONING", "link": 3 }],
-      "outputs": [{ "name": "CONDITIONING", "type": "CONDITIONING", "links": [4], "slot_index": 0 }],
-      "properties": { "Node name for S&R": "FluxGuidance" },
-      "widgets_values": [4]
-    },
-    {
       "id": 10,
-      "type": "BasicGuider",
-      "pos": [950, 280],
-      "size": [320, 70],
+      "type": "CFGGuider",
+      "pos": [950, 150],
+      "size": [320, 110],
       "flags": {},
       "order": 9,
       "mode": 0,
       "inputs": [
         { "name": "model", "type": "MODEL", "link": 1 },
-        { "name": "conditioning", "type": "CONDITIONING", "link": 4 }
+        { "name": "positive", "type": "CONDITIONING", "link": 3 },
+        { "name": "negative", "type": "CONDITIONING", "link": 13 }
       ],
       "outputs": [{ "name": "GUIDER", "type": "GUIDER", "links": [6], "slot_index": 0 }],
-      "properties": { "Node name for S&R": "BasicGuider" },
-      "widgets_values": []
+      "properties": { "Node name for S&R": "CFGGuider" },
+      "widgets_values": [1]
     },
     {
       "id": 11,
       "type": "SamplerCustomAdvanced",
-      "pos": [950, 400],
+      "pos": [950, 310],
       "size": [360, 160],
       "flags": {},
       "order": 10,
@@ -160,7 +164,7 @@
     {
       "id": 12,
       "type": "VAEDecode",
-      "pos": [1360, 400],
+      "pos": [1360, 310],
       "size": [280, 50],
       "flags": {},
       "order": 11,
@@ -176,7 +180,7 @@
     {
       "id": 13,
       "type": "SaveImage",
-      "pos": [1360, 490],
+      "pos": [1360, 400],
       "size": [400, 450],
       "flags": {},
       "order": 12,
@@ -184,14 +188,15 @@
       "inputs": [{ "name": "images", "type": "IMAGE", "link": 12 }],
       "outputs": [],
       "properties": { "Node name for S&R": "SaveImage" },
-      "widgets_values": ["flux2_draft"]
+      "widgets_values": ["flux2_klein9b_turbo"]
     }
   ],
   "links": [
     [1, 1, 0, 10, 0, "MODEL"],
     [2, 2, 0, 4, 0, "CLIP"],
-    [3, 4, 0, 5, 0, "CONDITIONING"],
-    [4, 5, 0, 10, 1, "CONDITIONING"],
+    [3, 4, 0, 10, 1, "CONDITIONING"],
+    [4, 4, 0, 5, 0, "CONDITIONING"],
+    [13, 5, 0, 10, 2, "CONDITIONING"],
     [5, 9, 0, 11, 0, "NOISE"],
     [6, 10, 0, 11, 1, "GUIDER"],
     [7, 8, 0, 11, 2, "SAMPLER"],

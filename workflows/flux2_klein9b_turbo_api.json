@@ -2,14 +2,14 @@
   "1": {
     "class_type": "UNETLoader",
     "inputs": {
-      "unet_name": "flux2_dev_fp8mixed.safetensors",
+      "unet_name": "flux-2-klein-9b-fp8.safetensors",
       "weight_dtype": "default"
     }
   },
   "2": {
     "class_type": "CLIPLoader",
     "inputs": {
-      "clip_name": "mistral_3_small_flux2_fp4_mixed.safetensors",
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
       "type": "flux2"
     }
   },
@@ -27,26 +27,25 @@
     }
   },
   "5": {
-    "class_type": "FluxGuidance",
+    "class_type": "ConditioningZeroOut",
     "inputs": {
-      "conditioning": ["4", 0],
-      "guidance": 4.0
+      "conditioning": ["4", 0]
     }
   },
   "6": {
     "class_type": "EmptyFlux2LatentImage",
     "inputs": {
-      "width": 1440,
-      "height": 1440,
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     }
   },
   "7": {
     "class_type": "Flux2Scheduler",
     "inputs": {
-      "steps": 12,
-      "width": 1440,
-      "height": 1440
+      "steps": 4,
+      "width": 1024,
+      "height": 1024
     }
   },
   "8": {
@@ -62,10 +61,12 @@
     }
   },
   "10": {
-    "class_type": "BasicGuider",
+    "class_type": "CFGGuider",
     "inputs": {
       "model": ["1", 0],
-      "conditioning": ["5", 0]
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "cfg": 1.0
     }
   },
   "11": {
@@ -89,7 +90,7 @@
     "class_type": "SaveImage",
     "inputs": {
       "images": ["12", 0],
-      "filename_prefix": "flux2_draft"
+      "filename_prefix": "flux2_klein9b_turbo"
     }
   }
 }

@@ -28,7 +28,7 @@
       "properties": {
         "Node name for S&R": "LoadImage"
       },
-      "widgets_values": ["flux2_00053_.png", "image"]
+      "widgets_values": ["example.png", "image"]
     },
     {
       "id": 2,

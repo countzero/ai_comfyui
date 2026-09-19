@@ -44,7 +44,7 @@
   "7": {
     "class_type": "Flux2Scheduler",
     "inputs": {
-      "steps": 50,
+      "steps": 12,
       "width": 1440,
       "height": 1440
     }
@@ -85,34 +85,11 @@
       "vae": ["3", 0]
     }
   },
-  "14": {
-    "class_type": "UpscaleModelLoader",
-    "inputs": {
-      "model_name": "4xNomos2_hq_dat2.pth"
-    }
-  },
-  "15": {
-    "class_type": "ImageUpscaleWithModel",
-    "inputs": {
-      "upscale_model": ["14", 0],
-      "image": ["12", 0]
-    }
-  },
-  "16": {
-    "class_type": "ImageScale",
-    "inputs": {
-      "image": ["15", 0],
-      "upscale_method": "lanczos",
-      "width": 4472,
-      "height": 4472,
-      "crop": "disabled"
-    }
-  },
   "13": {
     "class_type": "SaveImage",
     "inputs": {
-      "images": ["16", 0],
-      "filename_prefix": "flux2_print"
+      "images": ["12", 0],
+      "filename_prefix": "flux2_dev_draft"
     }
   }
 }
