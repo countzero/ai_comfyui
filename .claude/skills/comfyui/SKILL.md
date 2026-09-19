@@ -288,10 +288,16 @@ canvas.
 | File | Format | Model | Use |
 |---|---|---|---|
 | `workflows/flux2_dev_fp8_api.json` | API | fp8 | **fastest** — default choice |
+| `workflows/flux2_dev_fp8_ui.json` | UI | fp8 | **fastest** — canvas editor |
 | `workflows/flux2_print_20mp_api.json` | API | fp8 | 4 MP → 4x → 20 MP print master |
 | `workflows/flux2_print_20mp_ui.json` | UI | fp8 | same, canvas editor |
 | `workflows/flux2_dev_gguf_api.json` | API | GGUF | 2x slower; smaller footprint |
 | `workflows/flux2_dev_gguf_ui.json` | UI | GGUF | same, canvas editor |
+
+UI copies are deployed to `vendor/ComfyUI/user/default/workflows/` as
+**FLUX.2-dev fp8**, **FLUX.2 Print 20MP**, and **FLUX.2-dev GGUF**. Every UI
+workflow needs an API twin (and vice versa) — the formats are not
+interchangeable, so adding one means adding both.
 
 fp8 uses `UNETLoader` (`unet_name`, `weight_dtype`); GGUF uses `UnetLoaderGGUF`
 (`unet_name` only). `weight_dtype` options: `default`, `fp8_e4m3fn`,
