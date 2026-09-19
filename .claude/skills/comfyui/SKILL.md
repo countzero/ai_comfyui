@@ -14,7 +14,7 @@ description: >
 # ComfyUI (D:\Arbeit\ai_comfyui)
 
 Thin wrapper repo around ComfyUI as a git submodule. Verified working for
-FLUX.2-dev GGUF as of 2026-09-19.
+FLUX.2-dev fp8 as of 2026-09-19.
 
 ## Environment invariants
 
@@ -25,19 +25,18 @@ conda activate ComfyUI; python .\vendor\ComfyUI\main.py ...
 ```
 
 **GOTCHA — `conda run` gives false negatives.** `conda run -n ComfyUI python -c
-"import torch"` from a non-activated shell reported `ModuleNotFoundError` while
-torch 2.11.0+cu130 was installed and working. It resolves to the *identical*
+"import torch"` from a non-activated shell reports `ModuleNotFoundError` while
+torch 2.11.0+cu130 is installed and working. It resolves to the *identical*
 interpreter (`C:\Miniconda\envs\ComfyUI\python.exe`), so the interpreter is not
-the variable. This caused a wrong "environment is broken" diagnosis that nearly
-triggered an unnecessary rebuild. Use `conda activate ComfyUI; <cmd>`, never a
-bare `conda run`, before concluding anything is missing.
+the variable. Treat its output as unreliable: use `conda activate ComfyUI; <cmd>`,
+never a bare `conda run`, before concluding anything is missing.
 
 Nine conda envs exist (`base`, `ComfyUI`, `c3`, `fm`, `kinema`, `llama.cpp`,
 `open-webui`). Only `ComfyUI` is correct.
 
-**Re-read files before asserting their contents.** Claims about
-`requirements_override.txt` and installed packages were both wrong when made
-from memory after context pruning. Read the file.
+**Re-read files before asserting their contents.** Memory of
+`requirements_override.txt` and of the installed package set is unreliable after
+context pruning. Read the file.
 
 ## Verified baseline
 
@@ -67,7 +66,7 @@ vendor/ComfyUI/                        submodule
   models/{diffusion_models,text_encoders,vae}/    gitignored (.gitignore:6)
   custom_nodes/ComfyUI-GGUF/           copied in by rebuild script
   output/                              generated images
-workflows/flux2_dev_gguf_api.json      working FLUX.2 API-format workflow
+workflows/flux2_draft_api.json         working FLUX.2 API-format workflow
 ```
 
 ## Use fp8, not GGUF — it is 2x faster
@@ -96,6 +95,137 @@ text cleanly. There is no visible quality win either way, only the speed.
 
 Keep GGUF only if you need the smaller disk/RAM footprint. There is **no NVFP4
 FLUX.2** — `split_files/diffusion_models/` contains just the one fp8 file.
+
+**No FLUX.2 GGUF model is installed.** `models/diffusion_models/` holds only
+`flux2_dev_fp8mixed.safetensors`. The table above is the justification; to use
+GGUF for FLUX.2 again, fetch it from `city96/FLUX.2-dev-gguf`.
+
+**GGUF support itself is present and must stay.** The `vendor/ComfyUI-GGUF`
+submodule, the installed `custom_nodes/ComfyUI-GGUF/`, `rebuild_comfyui.ps1:99`
+and `requirements_override.txt:18` are all in place, so `UnetLoaderGGUF`
+registers and any other GGUF model loads normally. Do not rip out the submodule
+or the build wiring.
+
+## Quality settings — what BFL actually documents
+
+Sourced from the [FLUX.2-dev model card](https://huggingface.co/black-forest-labs/FLUX.2-dev),
+the [BFL FLUX.2 blog post](https://bfl.ai/blog/flux-2) and the
+[FLUX.2 prompting guide](https://docs.bfl.ai/guides/prompting_guide_flux2).
+
+| Setting | BFL guidance | Source |
+|---|---|---|
+| **Max resolution** | **4 MP (2048×2048)** — hard ceiling, stated three times | blog + prompting guide |
+| **Recommended resolution** | **up to 2 MP** "for most use cases" | prompting guide |
+| Dimensions | must be **multiples of 16** | prompting guide |
+| **Steps** | **50**; *"28 steps can be a good trade-off"* | dev model card snippet |
+| Guidance | `guidance_scale=4` (dev); 4.5, range 1.5–10 (flex) | dev card / guide |
+| Negative prompts | **not supported** — describe what you want | prompting guide |
+| Language | prompt in your native language for cultural accuracy | prompting guide |
+
+The megapixel ladder — **1024² is only 1 MP, half the recommended band**:
+
+| Dim | MP | Note |
+|---|---|---|
+| 1024² | 1.05 | half of BFL's recommendation |
+| 1408² | 1.98 | ≈ the 2 MP recommendation |
+| 1440² | 2.07 | ≈ 2 MP, benchmarked below |
+| 2048² | 4.19 | hard maximum |
+
+Caveat on provenance: the "≤2 MP recommended" line comes from the guide headed
+*FLUX.2 [pro] & [max]*, and the `steps: 50 (max 50)` row is tagged `[flex]`. The
+**50 / 28** figure is from the **[dev]** model card, so it applies directly here.
+
+### Steps measured
+
+All fp8, same prompt, seed `121027157284439`, warm (encoder cached).
+
+**At 1024² — no visible win, and step counts are not comparable there** (see `mu`
+below):
+
+| Steps | Time | Result |
+|---|---|---|
+| 20 | ~44.3s | baseline |
+| 28 | 66.1s | no clear sharpness gain |
+| 50 | 108.2s | no clear sharpness gain |
+
+**At 1440² — composition locked, so this is the valid comparison.** MAD is mean
+absolute difference vs the 50-step render (0–255):
+
+| Steps | Time | s/step | MAD vs 50 | Verdict |
+|---|---|---|---|---|
+| 4 | 19.5s | 4.88 | 34.47 | **unusable** — glyph has no drips, poses wrong |
+| 6 | 30.0s | 5.00 | 26.18 | unreliable — pose and props still diverge |
+| 8 | 37.6s | 4.70 | 24.96 | borderline |
+| 10 | 45.1s | 4.51 | 18.91 | aggressive floor |
+| **12** | **54.1s** | 4.51 | 17.84 | **draft default** — layout matches |
+| 16 | 72.1s | 4.51 | 14.19 | safe margin |
+| 20 | 94.5s | 4.72 | 12.91 | matches |
+| 28 | 130.0s | 4.64 | 7.98 | — |
+| 50 | 225.8s | 4.52 | 0 | print default |
+
+The structural break is **between 8 and 10** (MAD 25.0 → 18.9, then flat). Below
+10 the model has not committed to a composition. At ≥12 the draft reliably
+predicts the final layout; only fine detail (exact wing angle, prop shapes) still
+moves.
+
+Unlike at 1024², typography **is** visibly crisper at 28/50 than at 20 here —
+tighter letterform edges, better-defined spray speckle. Most of the gain is
+20→28; 28→50 is marginal for 1.7x the time.
+
+**Time scales with pixel count, not resolution.** s/step is ~2.2 at 1024² and
+~4.5–4.7 at 1440² — a 2.1x rise for a 1.97x pixel increase. Steps are linear on
+top of that.
+
+**Watch for encoder load in the first run of a new prompt.** The raw 1440²@20
+measurement was 112.1s but 94.5s warm; the ~18s delta is the Mistral encoder
+loading. Discard the first run of any prompt when benchmarking.
+
+### `compute_empirical_mu` branches at `seq_len > 4300`
+
+`Flux2Scheduler` → `get_schedule(steps, seq_len)` → `compute_empirical_mu`, where
+`seq_len = width*height/256`. Below the 4300 threshold `mu` interpolates on
+`num_steps`; above it `mu` is **step-independent**:
+
+| Dim | seq_len | mu(20) | mu(28) | mu(50) | |
+|---|---|---|---|---|---|
+| 1024² | 4,096 | 2.1980 | 2.1514 | 2.0234 | **STEP-DEPENDENT** |
+| 1440² | 8,100 | 1.8278 | 1.8278 | 1.8278 | step-independent |
+| 2048² | 16,384 | 3.2300 | 3.2300 | 3.2300 | step-independent |
+
+**Consequence: at 1024², changing steps changes the composition**, because the
+sigma curve reshapes. A/B-ing step counts with composition held constant is only
+valid at **≥1440²**. The 1 MP table above therefore shows framing drift mixed
+into any sharpness difference.
+
+### Seeds are NOT portable across resolutions
+
+Same seed at a different resolution gives a **different image**, not a bigger one.
+Two independent mechanisms:
+
+1. **Sigma schedule is resolution-dependent** — `seq_len` feeds `mu`. Second sigma
+   is `0.9942` at 1024² vs `0.9979` at 2048²; trajectories diverge from step one.
+2. **Noise field is spatially unrelated** — `comfy.sample.prepare_noise` does
+   `torch.manual_seed(seed)` then `randn(latent.size())`. Latent is 128×64×64 at
+   1024² vs 128×128×128 at 2048². The same value *stream* lands at different
+   spatial positions (row 1 col 0: `-1.626` vs `0.679`).
+
+So a seed-hunted composition **cannot** be re-rendered larger. Carry it forward as
+a **latent** (`VAEEncode` + `SplitSigmasDenoise` low_sigmas, or `ReferenceLatent`)
+or upscale the pixels. Budget accordingly: re-hunting 14 seeds costs ~10 min at
+1 MP but ~50 min at 4 MP.
+
+### Recover the prompt and seed from any output PNG
+
+`SaveImage` embeds the full **API-format workflow** in a PNG text chunk:
+
+```python
+from PIL import Image; import json
+wf = json.loads(Image.open('output/flux2_00053_.png').info['prompt'])
+# -> {node_id: {class_type, inputs}} — replay or mutate it directly
+```
+
+This is the fastest way to reconstruct settings for an image whose parameters were
+lost, and it round-trips straight back into `POST /prompt`.
 
 ## Launch flags
 
@@ -146,7 +276,7 @@ v0.36.0 uses **DynamicVRAM**, which supersedes the old static vram modes. From
 
 | Flag | Verdict |
 |---|---|
-| `--lowvram` | **No-op** — *"Doesn't do anything if dynamic vram is enabled."* Removed. |
+| `--lowvram` | **No-op** — *"Doesn't do anything if dynamic vram is enabled."* Not used. |
 | `--high-ram` | **Use it.** *"Can improve performance on high RAM systems."* 191 GiB here. |
 | `--fast-disk` | **Don't.** Prefers disk over unpinned RAM; RAM is abundant here. |
 | `--highvram` / `--gpu-only` | **Don't.** Would try to hold encoder + DiT (30 GiB) in 24 GiB. |
@@ -287,17 +417,66 @@ canvas.
 
 | File | Format | Model | Use |
 |---|---|---|---|
-| `workflows/flux2_dev_fp8_api.json` | API | fp8 | **fastest** — default choice |
-| `workflows/flux2_dev_fp8_ui.json` | UI | fp8 | **fastest** — canvas editor |
-| `workflows/flux2_print_20mp_api.json` | API | fp8 | 4 MP → 4x → 20 MP print master |
-| `workflows/flux2_print_20mp_ui.json` | UI | fp8 | same, canvas editor |
-| `workflows/flux2_dev_gguf_api.json` | API | GGUF | 2x slower; smaller footprint |
-| `workflows/flux2_dev_gguf_ui.json` | UI | GGUF | same, canvas editor |
+| `workflows/flux2_draft_api.json` | API | fp8 | **1440² @ 12 steps, 54s** — seed-hunt here |
+| `workflows/flux2_draft_ui.json` | UI | fp8 | same, canvas editor |
+| `workflows/flux2_print_api.json` | API | fp8 | **1440² @ 50 steps → 4x → 20 MP**, 272.5s |
+| `workflows/flux2_print_ui.json` | UI | fp8 | same, canvas editor |
+| `workflows/upscale_4x_api.json` | API | none | **upscale any PNG** — no diffusion, 24s |
+| `workflows/upscale_4x_ui.json` | UI | none | same, canvas editor |
 
 UI copies are deployed to `vendor/ComfyUI/user/default/workflows/` as
-**FLUX.2-dev fp8**, **FLUX.2 Print 20MP**, and **FLUX.2-dev GGUF**. Every UI
-workflow needs an API twin (and vice versa) — the formats are not
-interchangeable, so adding one means adding both.
+**FLUX.2 Draft**, **FLUX.2 Print**, and **Upscale 4x**. Every UI workflow needs
+an API twin (and vice versa) — the formats are not interchangeable, so adding one
+means adding both.
+
+**`upscale_4x_*` carries no `flux2_` prefix deliberately** — it contains zero
+diffusion nodes (`LoadImage`, `UpscaleModelLoader`, `ImageUpscaleWithModel`,
+`ImageScale`, `SaveImage`) and works on any image from any source.
+
+### Draft → Print is seed-portable, by design
+
+Both run at **1440²**, and that is the whole point:
+
+```
+flux2_draft  1440² @ 12 steps   54.1s   ← seed-hunt + dial the prompt
+flux2_print  1440² @ 50 steps  272.5s   ← SAME seed → SAME composition, full detail
+```
+
+Because `seq_len=8100 > 4300`, `mu` is step-independent at 1440², so changing only
+the step count preserves the composition. Verified: mean abs diff between the
+12-step and 50-step renders is detail-level, and the layout (poses, object
+placement, glyph position) is identical.
+
+**Never draft at 1024².** A composition found at 1 MP cannot be reproduced at any
+other resolution — see *Seeds are NOT portable across resolutions*. Every seed
+spent there is unusable for print.
+
+### Standalone upscale — `upscale_4x_*.json`
+
+Five nodes, no diffusion model touched:
+
+```
+LoadImage ─┐
+           ├─→ ImageUpscaleWithModel(4xNomos2_hq_dat2) → ImageScale(lanczos) → SaveImage
+UpscaleModelLoader ─┘
+```
+
+**Measured: 1024² → 4096² in 22.6–27.1s**, 16.8 MP, 24 MB, 34.7 cm at 300 DPI.
+Because `SaveImage` only depends on the `LoadImage` branch, ComfyUI's
+output-driven executor **never loads the 33 GiB UNet, Mistral encoder or VAE** —
+peak torch VRAM stays at tens of MiB.
+
+Verified at 1:1 against plain lanczos: letterforms gain clean hard edges, feather
+barbs separate individually. It does introduce faint white speckle on smooth
+surfaces — hallucinated micro-contrast, minor at print scale.
+
+`LoadImage` has `image_upload: true`, so PNGs drag-drop onto the node in the UI;
+via API put the file in `vendor/ComfyUI/input/` first. `LoadImageOutput` is an
+alternative that reads `output/` directly with no copy.
+
+`ImageScale` is set to 4096×4096 — a deliberate **no-op pass-through** for a
+1024² source, so nothing is interpolated. It only downscales cleanly; setting it
+above 4x the source stretches and softens.
 
 fp8 uses `UNETLoader` (`unet_name`, `weight_dtype`); GGUF uses `UnetLoaderGGUF`
 (`unet_name` only). `weight_dtype` options: `default`, `fp8_e4m3fn`,
@@ -305,13 +484,17 @@ fp8 uses `UNETLoader` (`unet_name`, `weight_dtype`); GGUF uses `UnetLoaderGGUF`
 
 ## Print pipeline (20 MP)
 
-`flux2_print_20mp_*.json`. Measured: **310.4s total, peak 23.13 GiB**, output
-4472×4472 = 20.0 MP, 23 MB PNG = **37.9 × 37.9 cm at 300 DPI**.
+`flux2_print_*.json`. Measured: **272.5s total, peak 22.33 GiB**, output
+4472×4472 = 20.0 MP, 30.4 MB PNG = **37.9 × 37.9 cm at 300 DPI**.
 
 ```
-FLUX.2 fp8 @ 2048²  →  ImageUpscaleWithModel (4xNomos2_hq_dat2)  →  8192² (67 MP)
-                    →  ImageScale lanczos 4472×4472              →  20 MP master
+FLUX.2 fp8 @ 1440² × 50 steps  →  ImageUpscaleWithModel (4xNomos2_hq_dat2)  →  5760²
+                               →  ImageScale lanczos 4472×4472              →  20 MP master
 ```
+
+**Generate at 1440².** It sits inside BFL's recommended ≤2 MP band and leaves
+budget for 50 steps. 2048² is BFL's hard ceiling and sits *above* the recommended
+band. 1440×4 = 5760 → 4472 is still a **downscale**, so supersampling holds.
 
 Generating 4x then downscaling supersamples: the upscaler's detail is averaged
 down, suppressing artifacts. Verified at 1:1 — crisp letterforms, visible fabric
@@ -328,7 +511,7 @@ To change print size, edit the `ImageScale` width/height. At 300 DPI: 4472² =
 37.9 cm²; A3 portrait = 3508×4961. Max 16384 per side.
 
 The UI copy is deployed to
-`vendor/ComfyUI/user/default/workflows/FLUX.2-dev GGUF.json`. **The two formats
+`vendor/ComfyUI/user/default/workflows/FLUX.2 Print.json`. **The two formats
 are not interchangeable** — API format is `{id: {class_type, inputs}}`, UI format
 needs `nodes`/`links` arrays. There is no conversion endpoint; maintain both.
 
@@ -346,8 +529,8 @@ Load a workflow into the open canvas without clicking:
 
 ```js
 // evaluate_script, after waiting for app && app.canvas && app.graph
-const wf = await (await fetch('/api/userdata/workflows%2FFLUX.2-dev%20GGUF.json')).json();
-await app.loadGraphData(wf, true, true, 'FLUX.2-dev GGUF');
+const wf = await (await fetch('/api/userdata/workflows%2FFLUX.2%20Print.json')).json();
+await app.loadGraphData(wf, true, true, 'FLUX.2 Print');
 await app.queuePrompt(0, 1);          // Run
 ```
 
@@ -358,7 +541,7 @@ Calling `loadGraphData` before the canvas exists throws
 Node chain:
 
 ```
-UnetLoaderGGUF(flux2-dev-Q4_K_M.gguf) ─┐
+UNETLoader(flux2_dev_fp8mixed.safetensors) ─┐
 CLIPLoader(mistral_..., type=flux2) → CLIPTextEncode → FluxGuidance(4.0) ─┤
                                                       EmptyFlux2LatentImage ─┤
                                                       Flux2Scheduler(steps,w,h) ─┤
@@ -397,4 +580,9 @@ FLUX.2-specific nodes (`comfy_extras/nodes_flux.py`):
 | GGUF 4-bit buys no speed | It dequantizes to bf16 before every matmul. Smaller on disk, **2x slower** than fp8. Pick GGUF only for footprint. |
 | `--enable-triton-backend` | 0% measured on both GGUF and fp8. Installed but intentionally not in `requirements_override.txt`. |
 | `ImageScaleToTotalPixels` caps at 16 MP | `max: 16.0`. For a 20 MP print master use `ImageScale` with explicit width/height (max 16384/side). |
-| PowerShell vars are case-insensitive | `$wf` and `$Wf` are the *same variable*. Clobbering a parsed-JSON object with its own filename parameter cost real debugging time in the bench harness. |
+| PowerShell vars are case-insensitive | `$wf` and `$Wf` are the *same variable*. Do not clobber a parsed-JSON object with its own filename parameter. |
+| Seed ≠ portable across resolution | Same seed at a new size gives a **different image**. Sigma schedule *and* noise layout both change. Carry compositions forward as latents, never by re-seeding. |
+| Steps change composition at 1024² | `seq_len=4096` is under `compute_empirical_mu`'s 4300 threshold, so `mu` depends on `num_steps`. A/B step counts at **≥1440²** only. |
+| 1024² is 1 MP, not 2 | Easy to misread. BFL recommends **up to 2 MP** (≈1408²–1440²) and caps at **4 MP** (2048²). The default 1024² is *half* the recommended band. |
+| `POST /free` doesn't drop `nvidia-smi` usage | The device is `cudaMallocAsync`; the allocator **keeps its pool** rather than returning it to the driver. Check `torch_vram_total` in `/system_stats` — tens of MiB means models really are unloaded, regardless of what `nvidia-smi` reports. |
+| PowerShell mangles `python -c` f-strings | Escaped double quotes inside an f-string format spec (`f'{\"x\":>6}'`) raise `SyntaxError: '{' was never closed`. Use a **single-quoted** PowerShell string with double quotes inside Python, or `.format()`. |
