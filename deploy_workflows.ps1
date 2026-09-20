@@ -13,6 +13,12 @@
     republishes it. Existing files are left alone by default so that edits saved
     from the ComfyUI UI survive; pass -Force to overwrite them.
 
+    Anything in the target tree that $workflows does not name is deleted, which
+    makes the table the single source of truth for the sidebar. Without that the
+    target only ever accumulates: renaming an entry leaves the old path behind
+    and the sidebar shows both layouts at once. The cost is that a workflow
+    created in the UI and never added to the table does not survive a deploy.
+
     Only *_ui.json files are published. The *_api.json twins drive POST /prompt
     and would render as broken graphs in the canvas.
 
@@ -55,6 +61,34 @@ if (-Not (Test-Path -LiteralPath $targetDirectory)) {
     New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
 }
 
+# Windows paths compare case-insensitively, so the sidebar treats a table entry
+# and a target file differing only in case as the same file.
+$mappedPaths = [System.Collections.Generic.HashSet[String]]::new(
+    [String[]]$workflows.Values,
+    [StringComparer]::OrdinalIgnoreCase
+)
+
+$pruned = 0
+
+foreach ($targetFile in (Get-ChildItem -LiteralPath $targetDirectory -Recurse -File)) {
+
+    $relativePath = $targetFile.FullName.Substring($targetDirectory.Length).TrimStart('\')
+
+    if ($mappedPaths.Contains($relativePath)) {
+        continue
+    }
+
+    Remove-Item -LiteralPath $targetFile.FullName -Force
+    Write-Host "  prune   ${relativePath}" -ForegroundColor "DarkYellow"
+    $pruned++
+}
+
+# Deepest first, so a nested directory is gone before its parent is tested.
+Get-ChildItem -LiteralPath $targetDirectory -Recurse -Directory |
+    Sort-Object -Property { $_.FullName.Length } -Descending |
+    Where-Object { -Not (Get-ChildItem -LiteralPath $_.FullName -Recurse -File) } |
+    ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force }
+
 $deployed = 0
 $skipped = 0
 
@@ -85,7 +119,7 @@ foreach ($sourceName in $workflows.Keys) {
     $deployed++
 }
 
-Write-Host "Deployed ${deployed}, skipped ${skipped}." -ForegroundColor "Yellow"
+Write-Host "Deployed ${deployed}, skipped ${skipped}, pruned ${pruned}." -ForegroundColor "Yellow"
 
 if ($skipped -gt 0 -And -Not $Force) {
     Write-Host "Use -Force to overwrite workflows edited in the ComfyUI UI." -ForegroundColor "DarkGray"
