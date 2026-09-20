@@ -227,21 +227,21 @@ surfaces — hallucinated micro-contrast, minor at print scale.
 Verified against the filesystem 2026-09-20. Source repos and quant tables are
 [`models.md`](./models.md).
 
-| Role                 | File                                          | GiB   |
-| -------------------- | --------------------------------------------- | ----- |
-| FLUX.2-dev DiT       | `flux2_dev_fp8mixed.safetensors`              | 33.02 |
-| FLUX.2-dev encoder   | `mistral_3_small_flux2_fp4_mixed.safetensors` | 11.43 |
-| Qwen-Image-2.1 DiT   | `qwen_image_2.1_int8_convrot.safetensors`     | 6.76  |
-| Qwen-Image-2.1 enc.  | `qwen3vl_8b_int8_convrot.safetensors`         | 8.71  |
-| Qwen-Image-2.1 VAE   | `qwen_image_2.1_vae_bf16.safetensors`         | 0.63  |
-| Klein 9B encoder     | `qwen_3_8b_fp8mixed.safetensors`              | 8.07  |
-| FLUX.2 VAE           | `flux2-vae.safetensors`                       | 0.31  |
-| Upscaler             | `4xNomos2_hq_dat2.pth`                        | 0.13  |
+| Role                     | File                                          | GiB   |
+| ------------------------ | --------------------------------------------- | ----- |
+| FLUX.2-dev DiT           | `flux2_dev_fp8mixed.safetensors`              | 33.02 |
+| FLUX.2-dev encoder       | `mistral_3_small_flux2_fp4_mixed.safetensors` | 11.43 |
+| Klein 9B DiT (distilled) | `flux-2-klein-9b-fp8.safetensors`             | 8.79  |
+| Klein 9B DiT (base)      | `flux-2-klein-base-9b-fp8.safetensors`        | 8.91  |
+| Klein 9B encoder         | `qwen_3_8b_fp8mixed.safetensors`              | 8.07  |
+| Qwen-Image-2.1 DiT       | `qwen_image_2.1_int8_convrot.safetensors`     | 6.76  |
+| Qwen-Image-2.1 encoder   | `qwen3vl_8b_int8_convrot.safetensors`         | 8.71  |
+| Qwen-Image-2.1 VAE       | `qwen_image_2.1_vae_bf16.safetensors`         | 0.63  |
+| FLUX.2 VAE               | `flux2-vae.safetensors`                       | 0.31  |
+| Upscaler                 | `4xNomos2_hq_dat2.pth`                        | 0.13  |
 
-**The two Klein 9B DiT checkpoints are not installed**, so the four
-`FLUX.2 Klein 9B` sidebar entries load with a red `UNETLoader` until
-`flux-2-klein-9b-fp8` (8.79) and `flux-2-klein-base-9b-fp8` (8.91) are pulled.
-The encoder for them is already here.
+86.76 GiB total. All three model families are complete, so every one of the
+eleven sidebar entries resolves its weights.
 
 `flux2-dev-Q4_K_M.gguf` (18.70) was benchmarked here but is no longer installed.
 
