@@ -42,12 +42,12 @@ $targetDirectory = Join-Path $PSScriptRoot "vendor\ComfyUI\user\default\workflow
 
 # Maps a repo file to its display path in the sidebar. ComfyUI hides the .json
 # extension and renders subdirectories as a tree, so the numeric prefixes are
-# what force pipeline order against the sidebar's alphabetical sort.
-#
-# The flux2_dev_* workflows are deliberately absent: their weights
-# (flux2_dev_fp8mixed, mistral_3_small_flux2_fp4_mixed) are no longer installed,
-# so publishing them would only produce red nodes.
+# what force pipeline order against the sidebar's alphabetical sort. "Dev" is
+# capitalized so that it sorts above "Klein 9B" rather than below it.
 $workflows = [ordered]@{
+    "flux2_dev_draft_ui.json"     = "FLUX.2 Dev\1 Draft.json"
+    "flux2_dev_print_ui.json"     = "FLUX.2 Dev\2 Print.json"
+    "flux2_dev_edit_ui.json"      = "FLUX.2 Dev\3 Edit.json"
     "flux2_klein9b_turbo_ui.json" = "FLUX.2 Klein 9B\1 Turbo.json"
     "flux2_klein9b_draft_ui.json" = "FLUX.2 Klein 9B\2 Draft.json"
     "flux2_klein9b_print_ui.json" = "FLUX.2 Klein 9B\3 Print.json"

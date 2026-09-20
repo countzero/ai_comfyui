@@ -1,0 +1,310 @@
+{
+  "last_node_id": 21,
+  "last_link_id": 28,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "pos": [40, 40],
+      "size": [400, 90],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{ "name": "MODEL", "type": "MODEL", "links": [1], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "UNETLoader" },
+      "widgets_values": ["flux2_dev_fp8mixed.safetensors", "default"]
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "pos": [40, 170],
+      "size": [400, 110],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{ "name": "CLIP", "type": "CLIP", "links": [2], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "CLIPLoader" },
+      "title": "CLIPLoader (Mistral-Small-3, dev's only encoder)",
+      "widgets_values": ["mistral_3_small_flux2_fp4_mixed.safetensors", "flux2", "default"]
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "pos": [40, 320],
+      "size": [400, 60],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{ "name": "VAE", "type": "VAE", "links": [11, 22], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "VAELoader" },
+      "widgets_values": ["flux2-vae.safetensors"]
+    },
+    {
+      "id": 17,
+      "type": "LoadImage",
+      "pos": [40, 430],
+      "size": [400, 340],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        { "name": "IMAGE", "type": "IMAGE", "links": [19], "slot_index": 0 },
+        { "name": "MASK", "type": "MASK", "links": null, "slot_index": 1 }
+      ],
+      "properties": { "Node name for S&R": "LoadImage" },
+      "title": "Reference image (drag & drop onto this node)",
+      "widgets_values": ["example.png", "image"]
+    },
+    {
+      "id": 18,
+      "type": "ImageScaleToTotalPixels",
+      "pos": [480, 430],
+      "size": [340, 130],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [{ "name": "image", "type": "IMAGE", "link": 19 }],
+      "outputs": [{ "name": "IMAGE", "type": "IMAGE", "links": [20, 21], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "ImageScaleToTotalPixels" },
+      "title": "Normalise to 1 MP, snap to 16 px (VAE stride)",
+      "widgets_values": ["lanczos", 1, 16]
+    },
+    {
+      "id": 19,
+      "type": "GetImageSize",
+      "pos": [480, 590],
+      "size": [340, 90],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [{ "name": "image", "type": "IMAGE", "link": 20 }],
+      "outputs": [
+        { "name": "width", "type": "INT", "links": [23, 25], "slot_index": 0 },
+        { "name": "height", "type": "INT", "links": [24, 26], "slot_index": 1 },
+        { "name": "batch_size", "type": "INT", "links": null, "slot_index": 2 }
+      ],
+      "properties": { "Node name for S&R": "GetImageSize" },
+      "title": "Drive latent + scheduler from the reference",
+      "widgets_values": []
+    },
+    {
+      "id": 20,
+      "type": "VAEEncode",
+      "pos": [480, 720],
+      "size": [340, 60],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        { "name": "pixels", "type": "IMAGE", "link": 21 },
+        { "name": "vae", "type": "VAE", "link": 22 }
+      ],
+      "outputs": [{ "name": "LATENT", "type": "LATENT", "links": [28], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "VAEEncode" },
+      "widgets_values": []
+    },
+    {
+      "id": 4,
+      "type": "CLIPTextEncode",
+      "pos": [480, 40],
+      "size": [420, 180],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [{ "name": "clip", "type": "CLIP", "link": 2 }],
+      "outputs": [{ "name": "CONDITIONING", "type": "CONDITIONING", "links": [3], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "CLIPTextEncode" },
+      "title": "Edit instruction",
+      "widgets_values": ["Give the owl a bright red scarf around its neck. Keep everything else unchanged."]
+    },
+    {
+      "id": 21,
+      "type": "ReferenceLatent",
+      "pos": [950, 40],
+      "size": [320, 70],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        { "name": "conditioning", "type": "CONDITIONING", "link": 3 },
+        { "name": "latent", "type": "LATENT", "link": 28 }
+      ],
+      "outputs": [{ "name": "CONDITIONING", "type": "CONDITIONING", "links": [27], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "ReferenceLatent" },
+      "title": "Attach reference - chain another for multi-reference edits",
+      "widgets_values": []
+    },
+    {
+      "id": 5,
+      "type": "FluxGuidance",
+      "pos": [950, 150],
+      "size": [320, 60],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [{ "name": "conditioning", "type": "CONDITIONING", "link": 27 }],
+      "outputs": [{ "name": "CONDITIONING", "type": "CONDITIONING", "links": [13], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "FluxGuidance" },
+      "title": "dev is guidance-distilled: no live negative prompt",
+      "widgets_values": [4]
+    },
+    {
+      "id": 6,
+      "type": "EmptyFlux2LatentImage",
+      "pos": [950, 250],
+      "size": [340, 110],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        { "name": "width", "type": "INT", "link": 23, "widget": { "name": "width" } },
+        { "name": "height", "type": "INT", "link": 24, "widget": { "name": "height" } }
+      ],
+      "outputs": [{ "name": "LATENT", "type": "LATENT", "links": [9], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "EmptyFlux2LatentImage" },
+      "widgets_values": [1024, 1024, 1]
+    },
+    {
+      "id": 7,
+      "type": "Flux2Scheduler",
+      "pos": [950, 390],
+      "size": [340, 110],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        { "name": "width", "type": "INT", "link": 25, "widget": { "name": "width" } },
+        { "name": "height", "type": "INT", "link": 26, "widget": { "name": "height" } }
+      ],
+      "outputs": [{ "name": "SIGMAS", "type": "SIGMAS", "links": [8], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "Flux2Scheduler" },
+      "title": "12 steps: the dev Draft tier, composition comes from the reference",
+      "widgets_values": [12, 1024, 1024]
+    },
+    {
+      "id": 8,
+      "type": "KSamplerSelect",
+      "pos": [950, 530],
+      "size": [340, 60],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{ "name": "SAMPLER", "type": "SAMPLER", "links": [7], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "KSamplerSelect" },
+      "widgets_values": ["euler"]
+    },
+    {
+      "id": 9,
+      "type": "RandomNoise",
+      "pos": [950, 640],
+      "size": [340, 90],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{ "name": "NOISE", "type": "NOISE", "links": [5], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "RandomNoise" },
+      "widgets_values": [42, "randomize"]
+    },
+    {
+      "id": 10,
+      "type": "BasicGuider",
+      "pos": [1360, 40],
+      "size": [320, 70],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        { "name": "model", "type": "MODEL", "link": 1 },
+        { "name": "conditioning", "type": "CONDITIONING", "link": 13 }
+      ],
+      "outputs": [{ "name": "GUIDER", "type": "GUIDER", "links": [6], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "BasicGuider" },
+      "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "SamplerCustomAdvanced",
+      "pos": [1360, 190],
+      "size": [360, 160],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        { "name": "noise", "type": "NOISE", "link": 5 },
+        { "name": "guider", "type": "GUIDER", "link": 6 },
+        { "name": "sampler", "type": "SAMPLER", "link": 7 },
+        { "name": "sigmas", "type": "SIGMAS", "link": 8 },
+        { "name": "latent_image", "type": "LATENT", "link": 9 }
+      ],
+      "outputs": [
+        { "name": "output", "type": "LATENT", "links": [10], "slot_index": 0 },
+        { "name": "denoised_output", "type": "LATENT", "links": null, "slot_index": 1 }
+      ],
+      "properties": { "Node name for S&R": "SamplerCustomAdvanced" },
+      "widgets_values": []
+    },
+    {
+      "id": 12,
+      "type": "VAEDecode",
+      "pos": [1360, 390],
+      "size": [280, 50],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        { "name": "samples", "type": "LATENT", "link": 10 },
+        { "name": "vae", "type": "VAE", "link": 11 }
+      ],
+      "outputs": [{ "name": "IMAGE", "type": "IMAGE", "links": [12], "slot_index": 0 }],
+      "properties": { "Node name for S&R": "VAEDecode" },
+      "widgets_values": []
+    },
+    {
+      "id": 13,
+      "type": "SaveImage",
+      "pos": [1360, 480],
+      "size": [400, 450],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [{ "name": "images", "type": "IMAGE", "link": 12 }],
+      "outputs": [],
+      "properties": { "Node name for S&R": "SaveImage" },
+      "widgets_values": ["flux2_dev_edit"]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 10, 0, "MODEL"],
+    [2, 2, 0, 4, 0, "CLIP"],
+    [19, 17, 0, 18, 0, "IMAGE"],
+    [20, 18, 0, 19, 0, "IMAGE"],
+    [21, 18, 0, 20, 0, "IMAGE"],
+    [22, 3, 0, 20, 1, "VAE"],
+    [3, 4, 0, 21, 0, "CONDITIONING"],
+    [28, 20, 0, 21, 1, "LATENT"],
+    [27, 21, 0, 5, 0, "CONDITIONING"],
+    [13, 5, 0, 10, 1, "CONDITIONING"],
+    [23, 19, 0, 6, 0, "INT"],
+    [24, 19, 1, 6, 1, "INT"],
+    [25, 19, 0, 7, 0, "INT"],
+    [26, 19, 1, 7, 1, "INT"],
+    [5, 9, 0, 11, 0, "NOISE"],
+    [6, 10, 0, 11, 1, "GUIDER"],
+    [7, 8, 0, 11, 2, "SAMPLER"],
+    [8, 7, 0, 11, 3, "SIGMAS"],
+    [9, 6, 0, 11, 4, "LATENT"],
+    [10, 11, 0, 12, 0, "LATENT"],
+    [11, 3, 0, 12, 1, "VAE"],
+    [12, 12, 0, 13, 0, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}
