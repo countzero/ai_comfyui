@@ -52,6 +52,9 @@ $workflows = [ordered]@{
     "flux2_klein9b_draft_ui.json" = "FLUX.2 Klein 9B\2 Draft.json"
     "flux2_klein9b_print_ui.json" = "FLUX.2 Klein 9B\3 Print.json"
     "flux2_klein9b_edit_ui.json"  = "FLUX.2 Klein 9B\4 Edit.json"
+    "qwen_image21_t2i_ui.json"    = "Qwen-Image 2.1\1 Text to Image.json"
+    "qwen_image21_edit_ui.json"   = "Qwen-Image 2.1\2 Edit.json"
+    "qwen_image21_rgba_ui.json"   = "Qwen-Image 2.1\3 Transparent.json"
     "upscale_4x_ui.json"          = "Utility\Upscale 4x.json"
 }
 
