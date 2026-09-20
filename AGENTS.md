@@ -7,7 +7,8 @@ This file is the canonical agent-instructions source for this repository, read n
 - **Always activate conda in the same command.** The shell is fresh per invocation: `conda activate ComfyUI; python .\vendor\ComfyUI\main.py ...`.
 - **`conda run` gives false negatives.** `conda run -n ComfyUI python -c "import torch"` from a non-activated shell reports `ModuleNotFoundError` while torch is installed and working. It resolves to the identical interpreter (`C:\Miniconda\envs\ComfyUI\python.exe`), so the interpreter is not the variable. Never conclude that a package is missing from a bare `conda run`.
 - **Nine conda environments exist on this machine and only `ComfyUI` is correct.**
-- **Do not run `rebuild_comfyui.ps1` without a reason.** It moves submodules.
+- **Two machines share this repository and neither profile is "the current box".** Confirm the GPU from `GET /system_stats` before trusting any measured number, because the installed model set differs too. `docs/hardware-24gb-blackwell.md`, `docs/hardware-16gb-ada.md`.
+- **Do not run `rebuild_comfyui.ps1` without a reason.** It moves submodules. Pass `-version` whenever a specific one is wanted: the default asks the GitHub API for `releases/latest`, which lags a tag that was pushed without being cut as a release, so a bare run can silently reinstall the version already checked out.
 - The launch flags, and the benchmark behind each one, are the header comment of `start_comfyui.ps1`.
 
 ## Layout
@@ -49,15 +50,15 @@ Never read a `.safetensors` or `.gguf` file, and never request `GET /object_info
 
 Where a new paragraph goes is decided by its kind, not by its topic:
 
-| Kind of information                               | Home                                                    |
-| ------------------------------------------------- | ------------------------------------------------------- |
-| A rule that applies in every session              | `AGENTS.md`: one invariant per area, ending in a pointer |
-| The contract or the reasoning behind one subsystem | that subsystem's document under `docs/`                 |
-| How one script works, and why it is written so    | a comment in that script                                |
-| A number measured on one machine                  | the hardware profile it was measured on                 |
-| What a user of this repository does               | `README.md`                                             |
-| An inventory that changes on its own              | nowhere: point at the file that defines it              |
-| The history of this repository                    | git, never a document                                   |
+| Kind of information                                | Home                                                     |
+| -------------------------------------------------- | -------------------------------------------------------- |
+| A rule that applies in every session               | `AGENTS.md`: one invariant per area, ending in a pointer |
+| The contract or the reasoning behind one subsystem | that subsystem's document under `docs/`                  |
+| How one script works, and why it is written so     | a comment in that script                                 |
+| A number measured on one machine                   | the hardware profile it was measured on                  |
+| What a user of this repository does                | `README.md`                                              |
+| An inventory that changes on its own               | nowhere: point at the file that defines it               |
+| The history of this repository                     | git, never a document                                    |
 
 `README.md` and the documents under `docs/` describe the same mechanics for different readers, which makes them the pair most likely to grow a second copy. `README.md` says what a user does; a reference document says what the contract is and which file owns it. The pointers run one way only, so the two cannot loop.
 
@@ -92,6 +93,6 @@ All under `docs/`; the sentence is the document's own opening line.
 | `conventions.md`             | Read when writing or reviewing code, a comment, a commit message or prose     |
 | `workflows.md`               | Read when building or editing a workflow graph, or when the sidebar is wrong  |
 | `http-api.md`                | Read when driving the server over HTTP, or when timing a run                  |
-| `hardware-16gb-ada.md`       | Read when choosing resolution, steps, CFG or a VRAM budget on the current box |
-| `hardware-24gb-blackwell.md` | Read when working on the archived 24 GiB and FLUX.2-dev profile               |
+| `hardware-16gb-ada.md`       | Read when working on the RTX 4070 Ti SUPER box                                |
+| `hardware-24gb-blackwell.md` | Read when working on the RTX PRO 5000 Blackwell box                           |
 | `models.md`                  | Read when installing, replacing or sourcing a model file                      |

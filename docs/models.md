@@ -1,55 +1,99 @@
-# FLUX.2 model manifest
+# Model catalog
 
 Read when installing, replacing or sourcing a model file.
 
 Sizes are GiB (bytes ÷ 1024³). Repos host `.../resolve/main/<file>`.
 
-Hardware-specific timings live in the profile docs, not here:
-[`hardware-16gb-ada.md`](./hardware-16gb-ada.md) (current) and
-[`hardware-24gb-blackwell.md`](./hardware-24gb-blackwell.md) (archived).
+This file says what exists and where to get it. **What is installed is a property
+of a machine, not of the repository**, so it lives in that machine's profile:
+[`hardware-24gb-blackwell.md`](./hardware-24gb-blackwell.md) and
+[`hardware-16gb-ada.md`](./hardware-16gb-ada.md) each carry their own set.
 
-## Installed
+## Downloading
 
-| Role | File | GiB |
-|---|---|---|
-| **DiT (distilled)** | `models/diffusion_models/flux-2-klein-9b-fp8.safetensors` | **8.79** |
-| **DiT (base)** | `models/diffusion_models/flux-2-klein-base-9b-fp8.safetensors` | **8.91** |
-| **Text encoder** | `models/text_encoders/qwen_3_8b_fp8mixed.safetensors` | **8.07** |
-| VAE | `models/vae/flux2-vae.safetensors` | 0.31 |
-| Upscaler | `models/upscale_models/4xNomos2_hq_dat2.pth` | 0.13 |
-| Upscaler (alt) | `models/upscale_models/4x-ESRGAN.pth` | 0.06 |
+`hf` ships inside the ComfyUI environment. Point `HF_HOME` at a drive with room
+before any pull: `hf-xet` keeps a chunk cache there, and `--local-dir` does not
+move it.
 
-Klein 9B is **non-commercial licensed** (the 4B variants are Apache-2.0).
+```powershell
+conda activate ComfyUI
+$env:HF_HOME = "D:\<somewhere with tens of GiB free>\hf"
+```
 
-DiT + encoder + VAE = 17.3 GiB, which does not fit the current card
-(`docs/hardware-16gb-ada.md` → *Model set*).
+Black Forest Labs gates its diffusion weights. Accept the license on each model
+page first; gating is `auto`, so access is immediate. `hf auth login` writes its
+token under whatever `HF_HOME` was set to at the time, so either set `HF_HOME`
+first or pass the token through `HF_TOKEN` afterwards. A download that sits on
+"Still waiting to acquire lock" is a dead `hf` process holding
+`<file>.lock` under `.cache/huggingface/download/`, not a slow network.
 
-**No FLUX.2-dev files remain installed.** Restoring that profile costs ~45 GiB:
-`flux2_dev_fp8mixed.safetensors` (33.02) plus a Mistral encoder (11.43 fp4_mixed).
+Comfy-Org's Qwen repo already mirrors ComfyUI's own directory layout, so it
+lands in place:
 
-## Klein 9B sources
+```powershell
+hf download Comfy-Org/Qwen-Image-2.1 `
+  diffusion_models/qwen_image_2.1_int8_convrot.safetensors `
+  text_encoders/qwen3vl_8b_int8_convrot.safetensors `
+  vae/qwen_image_2.1_vae_bf16.safetensors `
+  --local-dir .\vendor\ComfyUI\models
+```
 
-Diffusion models require accepting BFL's licence on HuggingFace first.
+Every other repo below stores the file at a path that does not match, so pull it
+to a scratch directory and move it into the right `models/` subdirectory.
 
-| File | Repo |
-|---|---|
-| `flux-2-klein-9b-fp8.safetensors` | `black-forest-labs/FLUX.2-klein-9b-fp8` |
-| `flux-2-klein-base-9b-fp8.safetensors` | `black-forest-labs/FLUX.2-klein-base-9b-fp8` |
-| `qwen_3_8b_fp8mixed.safetensors` | `Comfy-Org/flux2-klein-9B`, `split_files/text_encoders/` |
-| `flux2-vae.safetensors` | `Comfy-Org/flux2-dev`, `split_files/vae/` |
+## Qwen-Image-2.1
+
+`Comfy-Org/Qwen-Image-2.1`, license `qwen-research`, **non-commercial**. One set
+of weights covers both text to image and instruction editing, so a workflow
+never swaps checkpoints. 7B DiT, 32 single-stream layers, native 2K output, and
+a 64-channel RGBA VAE at 16x spatial compression.
+
+| Role            | File                                      | GiB   |
+| --------------- | ----------------------------------------- | ----- |
+| DiT (int8)      | `qwen_image_2.1_int8_convrot.safetensors` | 6.76  |
+| DiT (bf16)      | `qwen_image_2.1_bf16.safetensors`         | 13.25 |
+| Encoder (int8)  | `qwen3vl_8b_int8_convrot.safetensors`     | 8.71  |
+| Encoder (bf16)  | `qwen3vl_8b_bf16.safetensors`             | 16.33 |
+| Encoder (w4a8)  | `qwen3vl_8b_w4a8.safetensors`             | 5.88  |
+| VAE             | `qwen_image_2.1_vae_bf16.safetensors`     | 0.63  |
+
+The int8 pair is what Comfy-Org's own templates load. `int8_convrot` and
+`asym_w4a8_int8` both dispatch through `comfy-kitchen`, and both are disabled
+unless `comfy.model_management.supports_int8_compute()` is true, so on a card
+without int8 tensor cores the bf16 files are the only option.
+
+The repo also carries `qwen3.5_9b_qwen_image_2.1_pe_t2i` and `..._pe_i2i`, each
+8.82 GiB. Those are Qwen's **prompt rewriting** checkpoints, not ComfyUI text
+encoders, and no workflow here loads them.
+
+Qwen-Image-2.1 needs ComfyUI v0.37.0 or newer. v0.36.0 has neither the nodes nor
+`supported_models.QwenImage21`.
+
+## FLUX.2 Klein 9B sources
+
+Diffusion models require accepting BFL's license on HuggingFace first.
+
+| File                                   | Repo                                                                          |
+| -------------------------------------- | ----------------------------------------------------------------------------- |
+| `flux-2-klein-9b-fp8.safetensors`      | `black-forest-labs/FLUX.2-klein-9b-fp8`                                       |
+| `flux-2-klein-base-9b-fp8.safetensors` | `black-forest-labs/FLUX.2-klein-base-9b-fp8`                                  |
+| `qwen_3_8b_fp8mixed.safetensors`       | `Comfy-Org/vae-text-encorder-for-flux-klein-9b`, `split_files/text_encoders/` |
+| `flux2-vae.safetensors`                | `Comfy-Org/flux2-dev`, `split_files/vae/`                                     |
+
+Klein 9B is **non-commercial licensed**; the 4B variants are Apache-2.0. The DiT
+files are 8.79 and 8.91 GiB.
 
 Both BFL model cards state the 9B models "fit in ~29GB VRAM … RTX 4090 and
 above". That is the bf16 reference pipeline; the fp8 checkpoints above run in
-8.8 GiB and work fine on a 16 GiB card with the encoder evicting between passes.
+8.8 GiB.
 
 Other klein 9B encoder quants: `qwen_3_8b` bf16 15.26, `qwen_3_8b_fp4mixed` 6.34.
-The fp4 variant would cut the ~7.4–8.4s encoder reload penalty and is worth
-testing if prompt-churn dominates your workload.
+The fp4 variant is worth testing where the encoder has to evict between passes.
 
 Current Comfy-Org templates reference a newer VAE,
 `full_encoder_small_decoder.safetensors`, instead of `flux2-vae.safetensors`. The
-klein docs list `flux2-vae` for 9B and it is what is installed and verified, so
-the newer VAE is optional.
+klein docs list `flux2-vae` for 9B and it is what has been verified here, so the
+newer VAE is optional.
 
 **klein-4B** — Apache-2.0, all safetensors from
 `Comfy-Org/vae-text-encorder-for-flux-klein-4b`, 11.12 GiB total:
@@ -61,14 +105,19 @@ VAE 0.31. Needs `qwen_3_4b`, not `qwen_3_8b`.
 FLUX.2 concatenates three intermediate hidden layers, so conditioning width is
 fixed by architecture and cannot be changed by config.
 
-| Model | Required encoder | Taps | Width |
-|---|---|---|---|
-| FLUX.2-dev (32B) | Mistral-Small-3 24B | 10,20,30 | 15360 |
-| FLUX.2-klein-9B | Qwen3-8B | 9,18,27 | 12288 |
-| FLUX.2-klein-4B | Qwen3-4B | 9,18,27 | 7680 |
+| Model            | Required encoder     | Taps     | Width |
+| ---------------- | -------------------- | -------- | ----- |
+| FLUX.2-dev (32B) | Mistral-Small-3 24B  | 10,20,30 | 15360 |
+| FLUX.2-klein-9B  | Qwen3-8B             | 9,18,27  | 12288 |
+| FLUX.2-klein-4B  | Qwen3-4B             | 9,18,27  | 7680  |
 
 `CLIPLoader` takes `type=flux2` for **all** of them; ComfyUI auto-detects which
-encoder a checkpoint is from its state dict (`comfy/sd.py:1880-1936`).
+encoder a checkpoint is from its state dict (`comfy/sd.py`). Qwen-Image-2.1
+follows the same pattern under `type=qwen_image`, which it shares with
+Qwen-Image 2.0.
+
+A wrong `type` fails silently rather than loudly: a Mistral encoder loaded as
+`type=lumina2` loads without error and yields garbage.
 
 ## Upscaler: `4xNomos2_hq_dat2`
 
@@ -91,24 +140,19 @@ CC-BY-4.0); `4xNomosWebPhoto_RealPLKSR` (30 MB vs 140 MB if speed matters);
 `4x-UltraSharpV2` (kim2091, widely used, but **CC-BY-NC-SA-4.0 — non-commercial**).
 `4x-UltraSharp` v1 is Mega-only and not curl-fetchable.
 
-## fp8 vs GGUF: fp8 wins
+## fp8 beats GGUF, for an architectural reason
 
-Measured on the archived Blackwell box with FLUX.2-dev, but the *reason* is
-architectural and applies to any card with native fp8 (sm_89 and sm_120 both
-report `supports_fp8_compute() == True`):
+GGUF dequantizes to bf16 before every matmul (`ComfyUI-GGUF/ops.py:177` calls
+`dequantize_tensor`, and `dequant.py` does `d.view(torch.float16).to(dtype)`), so
+its 4-bit format is storage-only and buys no compute. fp8 runs on fp8 tensor
+cores wherever `mm.supports_fp8_compute()` is true, which covers sm_89 and
+sm_120. A *streaming* fp8 model therefore beats a *fully resident* GGUF one.
+Quality at matched seed is comparable. Keep GGUF only for footprint.
 
-| Model | 1 MP | 4 MP |
-|---|---|---|
-| GGUF Q4_K_M (18.70 GiB) | 88.4s | 335.8s |
-| **fp8mixed (33.02 GiB)** | **44.3s** | **213.2s** |
-| speedup | **2.00x** | **1.58x** |
-
-GGUF dequantizes to bf16 before every matmul (`ComfyUI-GGUF/ops.py:177`), so its
-4-bit format is storage-only and buys no compute. Quality at matched seed is
-comparable. Keep GGUF only for footprint.
+The measured 2x is in `hardware-24gb-blackwell.md` → *Use fp8, not GGUF*.
 
 **GGUF support stays installed.** The `vendor/ComfyUI-GGUF` submodule,
-`rebuild_comfyui.ps1:99` and `requirements_override.txt:18` are all in place so
+`rebuild_comfyui.ps1` and `requirements_override.txt` are all in place so
 `UnetLoaderGGUF` registers. Do not rip out the wiring.
 
 `GET /models/diffusion_models` returns nothing for `.gguf` files — that extension
@@ -116,33 +160,33 @@ is not in ComfyUI's default set. Query `/models/unet_gguf` instead.
 
 ## FLUX.2-dev DiT quants: `city96/FLUX.2-dev-gguf`
 
-Kept for reference if the dev profile is ever restored. City96's K-quants use
-mixed-precision block logic, so they beat their nominal bit width. Q4_0 and
-Q4_K_S are byte-identical; prefer Q4_K_S. The "1 MP" column is whether it fit the
-old 24 GiB card.
+City96's K-quants use mixed-precision block logic, so they beat their nominal bit
+width. Q4_0 and Q4_K_S are byte-identical; prefer Q4_K_S.
 
-| Quant | GiB | 1 MP |
-|---|---|---|
-| Q2_K | 11.97 | yes |
-| Q3_K_S | 14.69 | yes |
-| Q3_K_M | 14.86 | yes |
-| Q4_K_S | 17.97 | yes |
-| Q4_K_M | 18.70 | yes |
-| Q4_1 | 19.80 | no |
-| Q5_K_S | 21.63 | no |
-| Q5_K_M | 22.40 | no |
-| Q6_K | 25.51 | no |
-| Q8_0 | 32.60 | no |
-| BF16 | 60.02 | no |
+| Quant  | GiB   |
+| ------ | ----- |
+| Q2_K   | 11.97 |
+| Q3_K_S | 14.69 |
+| Q3_K_M | 14.86 |
+| Q4_K_S | 17.97 |
+| Q4_K_M | 18.70 |
+| Q4_1   | 19.80 |
+| Q5_K_S | 21.63 |
+| Q5_K_M | 22.40 |
+| Q6_K   | 25.51 |
+| Q8_0   | 32.60 |
+| BF16   | 60.02 |
+
+The fp8 file, `flux2_dev_fp8mixed.safetensors`, is 33.02 GiB.
 
 ## FLUX.2-dev text encoders: `Comfy-Org/flux2-dev`
 
 Path prefix `split_files/text_encoders/`.
 
-| File | GiB |
-|---|---|
-| `mistral_3_small_flux2_bf16.safetensors` | 33.14 |
-| `mistral_3_small_flux2_fp8.safetensors` | 16.80 |
+| File                                          | GiB   |
+| --------------------------------------------- | ----- |
+| `mistral_3_small_flux2_bf16.safetensors`      | 33.14 |
+| `mistral_3_small_flux2_fp8.safetensors`       | 16.80 |
 | `mistral_3_small_flux2_fp4_mixed.safetensors` | 11.43 |
 
 **These are already 30/40-layer pruned.** Unsloth's full

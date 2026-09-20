@@ -1,11 +1,15 @@
-# Hardware profile: 16 GiB Ada + FLUX.2 Klein 9B
+# Hardware profile: 16 GiB Ada
 
-Read when choosing resolution, steps, CFG or a VRAM budget on the current box.
+Read when choosing resolution, steps, CFG or a VRAM budget on the Ada box.
 
-**Status: current machine.** All figures measured 2026-09-19 against a running
-server. The previous profile (24 GiB Blackwell + FLUX.2-dev) is archived in
-[`hardware-24gb-blackwell.md`](./hardware-24gb-blackwell.md) and none of its
-numbers transfer.
+**Identify the machine before trusting a number here.** This repository is used
+from two, and neither is "the current one": this profile is the box with an
+**RTX 4070 Ti SUPER, 15.99 GiB, sm_89** alongside a second unused card, and the
+other is [`hardware-24gb-blackwell.md`](./hardware-24gb-blackwell.md).
+`GET /system_stats` says which one you are on.
+
+All figures below were measured 2026-09-19 against a running server on the Ada
+box. None of them transfer to Blackwell.
 
 ## Baseline
 
@@ -27,7 +31,9 @@ the fp8 checkpoints run on fp8 tensor cores exactly as they did on sm_120. The
 
 Usable VRAM is **~14.76 GiB** (`vram_free` at idle); the desktop holds ~1.2 GiB.
 
-## Model set
+## Installed on this box
+
+As of 2026-09-19. Source repos and quant tables are [`models.md`](./models.md).
 
 | Role | File | GiB |
 |---|---|---|

@@ -43,9 +43,7 @@ Identifiers, comments and prose use **American** spelling: `behavior`, not
 reaches code, comments and every document in the repository.
 
 It applies to what you touch rather than as a sweep, so a paragraph still
-carrying a British form is not a precedent. `docs/hardware-24gb-blackwell.md` is
-exempt: it is an archive of measurements taken on hardware this repository no
-longer has, and rewriting it would edit a record rather than a document.
+carrying a British form is not a precedent.
 
 ## PowerShell and CLI style
 

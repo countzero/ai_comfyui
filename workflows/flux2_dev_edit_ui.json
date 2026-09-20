@@ -70,7 +70,7 @@
       "inputs": [{ "name": "image", "type": "IMAGE", "link": 19 }],
       "outputs": [{ "name": "IMAGE", "type": "IMAGE", "links": [20, 21], "slot_index": 0 }],
       "properties": { "Node name for S&R": "ImageScaleToTotalPixels" },
-      "title": "Normalise to 1 MP, snap to 16 px (VAE stride)",
+      "title": "Normalize to 1 MP, snap to 16 px (VAE stride)",
       "widgets_values": ["lanczos", 1, 16]
     },
     {

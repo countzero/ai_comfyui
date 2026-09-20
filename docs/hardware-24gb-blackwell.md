@@ -1,25 +1,25 @@
-# Hardware profile: 24 GiB Blackwell + FLUX.2-dev
+# Hardware profile: 24 GiB Blackwell
 
-Read when working on the archived 24 GiB and FLUX.2-dev profile.
+Read when choosing resolution, steps, CFG or a VRAM budget on the Blackwell box.
 
-**Status: archived, not the current machine.** Every measurement here was taken on
-an RTX PRO 5000 Blackwell Laptop with FLUX.2-dev installed, verified working
-2026-09-19. The repo has since moved to a 16 GiB Ada card running FLUX.2 Klein 9B
-— see [`hardware-16gb-ada.md`](./hardware-16gb-ada.md).
+**Identify the machine before trusting a number here.** This repository is used
+from two, and neither is "the current one": this profile is the box with a single
+**RTX PRO 5000 Blackwell Laptop, 23.89 GiB, sm_120** and 191 GiB of RAM, and the
+other is [`hardware-16gb-ada.md`](./hardware-16gb-ada.md). `GET /system_stats`
+says which one you are on.
 
-These numbers are **still correct for this hardware** and are expensive to
-re-derive, so they are kept in full. Do not apply them to the current box: the
-GPU, the RAM, the models and the upscaler have all changed.
+Nothing here transfers to the Ada box: the GPU, the RAM, the models and the
+upscaler all differ.
 
 ## Baseline
 
 | | |
 |---|---|
 | GPU | RTX PRO 5000 Blackwell Laptop, **23.89 GiB**, sm_120, cap (12,0) |
-| RAM | 191 GiB (~164 free) |
+| RAM | 191 GiB (~166 free) |
 | torch | 2.11.0+cu130, Python 3.14.7 |
-| ComfyUI | v0.36.0 |
-| Disks | `C:` ~81 GB free, `D:` ~1480 GB free |
+| ComfyUI | v0.37.0 |
+| Disks | `C:` ~81 GB free, `D:` ~1450 GB free |
 
 Usable VRAM is **22.6 GiB**, not 23.89 — the desktop holds ~1.3 GiB
 (`/system_stats` reports `vram_free` at idle).
@@ -222,16 +222,34 @@ Verified at 1:1 against plain lanczos: letterforms gain clean hard edges, feathe
 barbs separate individually. It does introduce faint white speckle on smooth
 surfaces — hallucinated micro-contrast, minor at print scale.
 
-## Model set used on this box
+## Installed on this box
 
-| Role | File | GiB |
-|---|---|---|
-| **DiT (default)** | `flux2_dev_fp8mixed.safetensors` | **33.02** |
-| DiT (alt) | `flux2-dev-Q4_K_M.gguf` | 18.70 |
-| Text encoder | `mistral_3_small_flux2_fp4_mixed.safetensors` | 11.43 |
-| VAE | `flux2-vae.safetensors` | 0.31 |
-| Upscaler | `4xNomos2_hq_dat2.pth` | 0.13 |
+Verified against the filesystem 2026-09-20. Source repos and quant tables are
+[`models.md`](./models.md).
 
-**None of the FLUX.2-dev files are installed any more.** Restoring this profile
-means re-downloading the DiT and the Mistral encoder (~45 GiB). See
-[`models.md`](./models.md) for quant tables and source repos.
+| Role                 | File                                          | GiB   |
+| -------------------- | --------------------------------------------- | ----- |
+| FLUX.2-dev DiT       | `flux2_dev_fp8mixed.safetensors`              | 33.02 |
+| FLUX.2-dev encoder   | `mistral_3_small_flux2_fp4_mixed.safetensors` | 11.43 |
+| Qwen-Image-2.1 DiT   | `qwen_image_2.1_int8_convrot.safetensors`     | 6.76  |
+| Qwen-Image-2.1 enc.  | `qwen3vl_8b_int8_convrot.safetensors`         | 8.71  |
+| Qwen-Image-2.1 VAE   | `qwen_image_2.1_vae_bf16.safetensors`         | 0.63  |
+| Klein 9B encoder     | `qwen_3_8b_fp8mixed.safetensors`              | 8.07  |
+| FLUX.2 VAE           | `flux2-vae.safetensors`                       | 0.31  |
+| Upscaler             | `4xNomos2_hq_dat2.pth`                        | 0.13  |
+
+**The two Klein 9B DiT checkpoints are not installed**, so the four
+`FLUX.2 Klein 9B` sidebar entries load with a red `UNETLoader` until
+`flux-2-klein-9b-fp8` (8.79) and `flux-2-klein-base-9b-fp8` (8.91) are pulled.
+The encoder for them is already here.
+
+`flux2-dev-Q4_K_M.gguf` (18.70) was benchmarked here but is no longer installed.
+
+Residency against 22.6 GiB usable, which is what decides whether a prompt change
+costs an encoder reload:
+
+| Set                       | Total | Co-resident |
+| ------------------------- | ----- | ----------- |
+| Qwen-Image-2.1, int8 pair | 16.10 | yes         |
+| Klein 9B, fp8 pair        | 17.17 | yes         |
+| FLUX.2-dev                | 44.76 | no, streams |
