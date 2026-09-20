@@ -1,5 +1,7 @@
 # Hardware profile: 16 GiB Ada + FLUX.2 Klein 9B
 
+Read when choosing resolution, steps, CFG or a VRAM budget on the current box.
+
 **Status: current machine.** All figures measured 2026-09-19 against a running
 server. The previous profile (24 GiB Blackwell + FLUX.2-dev) is archived in
 [`hardware-24gb-blackwell.md`](./hardware-24gb-blackwell.md) and none of its
@@ -35,10 +37,8 @@ Usable VRAM is **~14.76 GiB** (`vram_free` at idle); the desktop holds ~1.2 GiB.
 | VAE | `flux2-vae.safetensors` | 0.31 |
 | Upscaler | `4xNomos2_hq_dat2.pth` | 0.13 |
 
-**Encoder and DiT are still not co-resident**: 8.91 + 8.07 + 0.31 = 17.3 GiB
-against 14.76 usable. `reference/models.md` previously claimed klein was "the only
-FLUX.2 configuration where encoder and DiT stay resident simultaneously" — that
-was computed for 24 GiB and is **false on this card**.
+**Encoder and DiT are not co-resident**: the set above totals 17.3 GiB against
+14.76 usable, so the encoder evicts before the DiT loads.
 
 The eviction is cheap though. Measured on the distilled model at 1440²/4 steps:
 
@@ -57,18 +57,15 @@ Confirmed against the shipped blueprint and the Comfy-Org template:
 
 | | FLUX.2-dev | Klein 9B base | Klein 9B distilled |
 |---|---|---|---|
-| guider | `FluxGuidance(4)` → `BasicGuider` | **`CFGGuider(cfg=5)`** | **`CFGGuider(cfg=1)`** |
-| negative prompt | not supported | **works** (undistilled CFG) | `ConditioningZeroOut` |
 | steps | 20–50 | 20–28 | 4 |
 | encoder | Mistral-Small-3 24B | `qwen_3_8b_fp8mixed`, `type=flux2` | same |
 
-BFL's "negative prompts are not supported" guidance is a **dev / distilled-guidance
-fact**. Klein *base* is undistilled and runs true CFG, so its negative prompt is
-live. Klein *distilled* runs at cfg 1 where the negative is ignored.
+Which guider each of them needs, and why klein base alone has a live negative
+prompt, is `docs/workflows.md` → *Guider choice is per model, not preference*.
 
-**cfg 1.0 costs exactly half.** ComfyUI short-circuits to a single model eval when
-cfg is 1; any cfg > 1 runs positive and negative passes. Measured at 1440²/20
-steps: cfg 1.0 = 31.5s, cfg 2.0–8.0 = 61.0–63.7s flat.
+**cfg 1.0 costs exactly half**, measured at 1440²/20 steps: cfg 1.0 = 31.5s,
+cfg 2.0–8.0 = 61.0–63.7s flat. The mechanism behind the factor of two is in the
+same section.
 
 ## Resolution
 
@@ -84,7 +81,7 @@ Klein base, 20 steps, cfg 5, seed 42. Times are **server-side**
 Two results worth noting:
 
 - **Peak VRAM falls as resolution rises** (13.25 → 11.74 GiB). Same DynamicVRAM
-  eviction behaviour the 24 GiB box showed, reproducing on 16 GiB. 4 MP does not
+  eviction behavior the 24 GiB box showed, reproducing on 16 GiB. 4 MP does not
   OOM.
 - **Cost per megapixel worsens** here (27.8 → 40.0 s/MP), the *opposite* of the
   Blackwell box (93.9 → 80.5, improving). Do not assume high-res is efficient on
@@ -94,7 +91,7 @@ Two results worth noting:
 resolutions, so treat it as suggestive rather than proven. It is still a reason
 to prefer 1440² for anything with text.
 
-## Step counts — and why MAD alone is misleading
+## Step counts, and why MAD alone is misleading
 
 Klein base, 1440², cfg 5, seed 42, reference = 28 steps.
 
@@ -112,7 +109,7 @@ Klein base, 1440², cfg 5, seed 42, reference = 28 steps.
 `border` is the mean abs diff over the outer 1/8 frame, `centre` the middle
 quarter. The ratio separates *subject refinement* from *whole-frame drift*.
 
-**Klein base does not stabilise until ~20 steps.** Border diff stays at 15–35
+**Klein base does not stabilize until ~20 steps.** Border diff stays at 15–35
 through 16 steps, then collapses to 3.00 at 20. A ratio near 1.0 (steps 8–12)
 means the background is changing as much as the subject — the whole frame is
 still moving, including global tone and lighting.
@@ -182,23 +179,13 @@ step-independent and only the step count changes.
 Peak VRAM never exceeded **14.45 GiB** across all four workflows, against 14.76
 usable — comfortable but not spacious. The Edit workflow is the tightest.
 
-## Benchmarking method — two traps
+## Benchmarking method
 
-**1. Client wall-clock lies.** It includes queue wait and model load/evict. A
-160.1s render was recorded as 59s because a stale queued job was draining
-underneath it. Always read `execution_start → execution_success` from
-`GET /history/{id}`:
-
-```powershell
-$h.$id.status.messages   # ('execution_start', @{timestamp=...}), ('execution_success', ...)
-```
-
-**2. Aborting the client does not cancel the queue.** ComfyUI keeps running the
-submitted job. Resubmitting an identical prompt then returns the *cached* result
-in ~0s while the poller waits for the queue to drain. Check
-`execution_cached` — if the cached node count equals the total node count, the
-run measured nothing. `POST /interrupt` and `POST /queue` (clear) are the real
-cancel.
+Every number above is a server-side `execution_start → execution_success` delta
+read back from `GET /history/{id}`, never a client-side measurement. The two
+traps that make a client number wrong are `docs/http-api.md` → *Timing a run*,
+and both were hit here: the 160.1s render in the resolution table first read as
+59s.
 
 Determinism was verified: identical parameters produced **MAD 0.0000** between
 two separate runs, so any non-zero difference in these tables is a real effect of

@@ -1,5 +1,7 @@
 # FLUX.2 model manifest
 
+Read when installing, replacing or sourcing a model file.
+
 Sizes are GiB (bytes ÷ 1024³). Repos host `.../resolve/main/<file>`.
 
 Hardware-specific timings live in the profile docs, not here:
@@ -19,10 +21,8 @@ Hardware-specific timings live in the profile docs, not here:
 
 Klein 9B is **non-commercial licensed** (the 4B variants are Apache-2.0).
 
-DiT + encoder + VAE = 17.3 GiB, so they do **not** co-reside in the current
-card's 14.76 GiB usable. An earlier revision of this file claimed klein was "the
-only FLUX.2 configuration where encoder and DiT stay resident simultaneously" —
-that was computed against 24 GiB and is false here.
+DiT + encoder + VAE = 17.3 GiB, which does not fit the current card
+(`docs/hardware-16gb-ada.md` → *Model set*).
 
 **No FLUX.2-dev files remain installed.** Restoring that profile costs ~45 GiB:
 `flux2_dev_fp8mixed.safetensors` (33.02) plus a Mistral encoder (11.43 fp4_mixed).
@@ -70,7 +70,7 @@ fixed by architecture and cannot be changed by config.
 `CLIPLoader` takes `type=flux2` for **all** of them; ComfyUI auto-detects which
 encoder a checkpoint is from its state dict (`comfy/sd.py:1880-1936`).
 
-## Upscaler — `4xNomos2_hq_dat2`
+## Upscaler: `4xNomos2_hq_dat2`
 
 From `Phhofm/models`, **CC-BY-4.0** (no non-commercial restriction). DAT2 arch,
 4x, tagged `general-upscaler, photo`. Verified sha256
@@ -91,7 +91,7 @@ CC-BY-4.0); `4xNomosWebPhoto_RealPLKSR` (30 MB vs 140 MB if speed matters);
 `4x-UltraSharpV2` (kim2091, widely used, but **CC-BY-NC-SA-4.0 — non-commercial**).
 `4x-UltraSharp` v1 is Mega-only and not curl-fetchable.
 
-## fp8 vs GGUF — fp8 wins
+## fp8 vs GGUF: fp8 wins
 
 Measured on the archived Blackwell box with FLUX.2-dev, but the *reason* is
 architectural and applies to any card with native fp8 (sm_89 and sm_120 both
@@ -114,7 +114,7 @@ comparable. Keep GGUF only for footprint.
 `GET /models/diffusion_models` returns nothing for `.gguf` files — that extension
 is not in ComfyUI's default set. Query `/models/unet_gguf` instead.
 
-## FLUX.2-dev DiT quants — `city96/FLUX.2-dev-gguf`
+## FLUX.2-dev DiT quants: `city96/FLUX.2-dev-gguf`
 
 Kept for reference if the dev profile is ever restored. City96's K-quants use
 mixed-precision block logic, so they beat their nominal bit width. Q4_0 and
@@ -135,7 +135,7 @@ old 24 GiB card.
 | Q8_0 | 32.60 | no |
 | BF16 | 60.02 | no |
 
-## FLUX.2-dev text encoders — `Comfy-Org/flux2-dev`
+## FLUX.2-dev text encoders: `Comfy-Org/flux2-dev`
 
 Path prefix `split_files/text_encoders/`.
 

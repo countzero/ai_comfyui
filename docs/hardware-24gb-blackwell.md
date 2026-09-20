@@ -1,5 +1,7 @@
 # Hardware profile: 24 GiB Blackwell + FLUX.2-dev
 
+Read when working on the archived 24 GiB and FLUX.2-dev profile.
+
 **Status: archived, not the current machine.** Every measurement here was taken on
 an RTX PRO 5000 Blackwell Laptop with FLUX.2-dev installed, verified working
 2026-09-19. The repo has since moved to a 16 GiB Ada card running FLUX.2 Klein 9B
