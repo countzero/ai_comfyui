@@ -59,7 +59,7 @@ To build ComfyUI and its depdendencies execute the script:
 > [!TIP]
 > If PowerShell is not configured to execute files allow it by executing the following in an elevated PowerShell: `Set-ExecutionPolicy RemoteSigned`
 
-### 6. Install and use a specific model
+### 6. Install a specific model
 
 Follow the ComfyUI tutorial on how to use a specific model, e.g.:
 
