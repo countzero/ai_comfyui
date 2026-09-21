@@ -339,6 +339,35 @@ The prefix cache is worth **44%**. `auto` is both the fastest and the lightest,
 so the shipped default needs no change; `off` exists to rule the cache out when
 debugging, not as a tuning option.
 
+### Adherence, nine prompts at 2048², 40 steps
+
+Three seeds each at shipped defaults, scored against the pass conditions in
+*The benchmark prompt set*. Median 140.8s per render at 19.95 GiB peak.
+
+| Prompt          | Pass | What failed                                     |
+| --------------- | ---- | ----------------------------------------------- |
+| C1 counting     | 2/3  | seed 1337 drew one ball, not three              |
+| C2 position     | 1/3  | no bear at 777, dog not right of it at 42       |
+| C3 color attr   | 0/3  | "purple" bound to the wine, no black apple ever |
+| C4 two object   | 3/3  | -                                               |
+| C5 transparency | 3/3  | -                                               |
+| C6 architecture | 3/3  | -                                               |
+| C7 illustration | 2/3  | seed 1337 graded the sky                        |
+| C8 landscape    | 3/3  | -                                               |
+| C9 CJK text     | 2/3  | seed 777 split into two columns, glyphs garbled |
+
+**Attribute binding is the weak axis, not rendering.** The four GenEval lines
+score 6/12 against 10/12 for the four added ones: geometry, flat shading, depth
+recession and CJK glyphs all hold, but a color belonging to one of two objects
+lands on whichever noun is nearest, and the second object is often dropped.
+
+**C5 is the only one scored mechanically**, and it carries the most weight,
+because the Transparent workflow's whole claim rests on it. Alpha spans 0-255
+across 256 levels with 19-22% of pixels fully transparent. Every other render is
+the control: all are 4-channel too, since this VAE is RGBA, yet none holds one
+fully transparent pixel and their alpha means sit at 254.3 to 255.0. Four bands
+proves nothing on this model; only varying alpha does.
+
 ## Klein 9B
 
 First measurement on this box. The Klein numbers in
