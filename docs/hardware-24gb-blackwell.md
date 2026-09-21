@@ -13,13 +13,13 @@ upscaler all differ.
 
 ## Baseline
 
-| | |
-|---|---|
-| GPU | RTX PRO 5000 Blackwell Laptop, **23.89 GiB**, sm_120, cap (12,0) |
-| RAM | 191 GiB (~166 free) |
-| torch | 2.11.0+cu130, Python 3.14.7 |
-| ComfyUI | v0.37.0 |
-| Disks | `C:` ~81 GB free, `D:` ~1450 GB free |
+|         |                                                                  |
+| ------- | ---------------------------------------------------------------- |
+| GPU     | RTX PRO 5000 Blackwell Laptop, **23.89 GiB**, sm_120, cap (12,0) |
+| RAM     | 191 GiB (~166 free)                                              |
+| torch   | 2.11.0+cu130, Python 3.14.7                                      |
+| ComfyUI | v0.37.0                                                          |
+| Disks   | `C:` ~81 GB free, `D:` ~1450 GB free                             |
 
 Usable VRAM is **22.6 GiB**, not 23.89 — the desktop holds ~1.3 GiB
 (`/system_stats` reports `vram_free` at idle).
@@ -29,11 +29,11 @@ Usable VRAM is **22.6 GiB**, not 23.89 — the desktop holds ~1.3 GiB
 **`flux2_dev_fp8mixed.safetensors` beats `flux2-dev-Q4_K_M.gguf` decisively**, even
 though it is 33.02 GiB vs 18.70 and therefore *must* stream on a 24 GiB card.
 
-| Model | 1 MP (1024²) | 4 MP (2048²) |
-|---|---|---|
-| GGUF Q4_K_M | 88.4s | 335.8s |
-| **fp8mixed** | **44.3s** | **213.2s** |
-| speedup | **2.00x** | **1.58x** |
+| Model        | 1 MP (1024²) | 4 MP (2048²) |
+| ------------ | ------------ | ------------ |
+| GGUF Q4_K_M  | 88.4s        | 335.8s       |
+| **fp8mixed** | **44.3s**    | **213.2s**   |
+| speedup      | **2.00x**    | **1.58x**    |
 
 Why, from source: `ComfyUI-GGUF/ops.py:177` calls `dequantize_tensor(...)` and
 `dequant.py` does `d.view(torch.float16).to(dtype)`. **GGUF's 4-bit format is
@@ -58,26 +58,26 @@ All fp8, same prompt, seed `121027157284439`, warm (encoder cached).
 **At 1024² — no visible win, and step counts are not comparable there** (see `mu`
 below):
 
-| Steps | Time | Result |
-|---|---|---|
-| 20 | ~44.3s | baseline |
-| 28 | 66.1s | no clear sharpness gain |
-| 50 | 108.2s | no clear sharpness gain |
+| Steps | Time   | Result                  |
+| ----- | ------ | ----------------------- |
+| 20    | ~44.3s | baseline                |
+| 28    | 66.1s  | no clear sharpness gain |
+| 50    | 108.2s | no clear sharpness gain |
 
 **At 1440² — composition locked, so this is the valid comparison.** MAD is mean
 absolute difference vs the 50-step render (0–255):
 
-| Steps | Time | s/step | MAD vs 50 | Verdict |
-|---|---|---|---|---|
-| 4 | 19.5s | 4.88 | 34.47 | **unusable** — glyph has no drips, poses wrong |
-| 6 | 30.0s | 5.00 | 26.18 | unreliable — pose and props still diverge |
-| 8 | 37.6s | 4.70 | 24.96 | borderline |
-| 10 | 45.1s | 4.51 | 18.91 | aggressive floor |
-| **12** | **54.1s** | 4.51 | 17.84 | **draft default** — layout matches |
-| 16 | 72.1s | 4.51 | 14.19 | safe margin |
-| 20 | 94.5s | 4.72 | 12.91 | matches |
-| 28 | 130.0s | 4.64 | 7.98 | — |
-| 50 | 225.8s | 4.52 | 0 | print default |
+| Steps  | Time      | s/step | MAD vs 50 | Verdict                                        |
+| ------ | --------- | ------ | --------- | ---------------------------------------------- |
+| 4      | 19.5s     | 4.88   | 34.47     | **unusable** — glyph has no drips, poses wrong |
+| 6      | 30.0s     | 5.00   | 26.18     | unreliable — pose and props still diverge      |
+| 8      | 37.6s     | 4.70   | 24.96     | borderline                                     |
+| 10     | 45.1s     | 4.51   | 18.91     | aggressive floor                               |
+| **12** | **54.1s** | 4.51   | 17.84     | **draft default** — layout matches             |
+| 16     | 72.1s     | 4.51   | 14.19     | safe margin                                    |
+| 20     | 94.5s     | 4.72   | 12.91     | matches                                        |
+| 28     | 130.0s    | 4.64   | 7.98      | —                                              |
+| 50     | 225.8s    | 4.52   | 0         | print default                                  |
 
 The structural break is **between 8 and 10** (MAD 25.0 → 18.9, then flat). Below
 10 the model has not committed to a composition. At ≥12 the draft reliably
@@ -120,11 +120,11 @@ weights are streaming** from RAM — drop a quant level.
 **Residency is an optimisation, not a requirement — 4 MP works on Q4_K_M.**
 Measured, same prompt and seed 42, 20 steps:
 
-| Output | MP | Tokens | Time | s/MP | Peak VRAM | Mode |
-|---|---|---|---|---|---|---|
-| 1024² | 1.05 | 4,096 | 98.6s | 93.9 | 22.23 GiB | flat — resident |
-| 1440² | 2.07 | 8,100 | 168.7s | 81.5 | 23.54 GiB | sawtooth — streaming |
-| 2048² | 4.19 | 16,384 | 337.4s | 80.5 | **20.91 GiB** | streaming |
+| Output | MP   | Tokens | Time   | s/MP | Peak VRAM     | Mode                 |
+| ------ | ---- | ------ | ------ | ---- | ------------- | -------------------- |
+| 1024²  | 1.05 | 4,096  | 98.6s  | 93.9 | 22.23 GiB     | flat — resident      |
+| 1440²  | 2.07 | 8,100  | 168.7s | 81.5 | 23.54 GiB     | sawtooth — streaming |
+| 2048²  | 4.19 | 16,384 | 337.4s | 80.5 | **20.91 GiB** | streaming            |
 
 Two counter-intuitive results, both verified:
 
@@ -149,11 +149,11 @@ prompt changes — conditioning is cached, so repeated seeds skip it.
 
 Benchmarked at 1024², 20 steps, median of 3 after a discarded warm-up:
 
-| Config | Median | Δ |
-|---|---|---|
-| `--high-ram` (baseline) | 98.4s | — |
-| `+ --enable-triton-backend` | 98.4s | **0%** |
-| `+ --fast` (all four features) | 88.4s | −10.2% |
+| Config                                  | Median    | Δ          |
+| --------------------------------------- | --------- | ---------- |
+| `--high-ram` (baseline)                 | 98.4s     | —          |
+| `+ --enable-triton-backend`             | 98.4s     | **0%**     |
+| `+ --fast` (all four features)          | 88.4s     | −10.2%     |
 | `+ --fast fp16_accumulation cublas_ops` | **88.4s** | **−10.2%** |
 
 The two-feature subset **exactly matches** full `--fast`, so `autotune` and
@@ -171,10 +171,25 @@ triton   available=True   disabled=False
 ```
 
 But it measured **0% on both GGUF and fp8**. Its capabilities (`quantize_nvfp4`,
-`rms_rope`, `int8_linear`, `w4a8_int8_linear`) target quantisation paths this
-setup never takes — the matmuls go through cuBLAS regardless. It is deliberately
-**absent from `requirements_override.txt`**; re-test only if adopting an
-nvfp4/int8 model.
+`rms_rope`, `int8_linear`, `w4a8_int8_linear`) target quantisation paths those
+models never take — the matmuls go through cuBLAS regardless.
+
+**Re-tested on an int8 model, still nothing.** That was the one condition under
+which this was worth revisiting, and Qwen-Image-2.1's `int8_convrot` weights meet
+it: they take exactly the `int8_linear` and `quantize_and_rotate_rowwise` paths
+the capability list advertises. Measured at 2048², 25 steps, one server per
+configuration so the flag is the only variable:
+
+| Backend | seed 42 | seed 777 |
+| ------- | ------- | -------- |
+| off     | 80.7s   | 80.2s    |
+| on      | 79.6s   | 79.8s    |
+
+0.9%, inside run-to-run noise. It is not free either: with the backend on, the
+same seed renders MAD 1.08 away from the same seed with it off, while two runs
+with it off are bit-identical. It stays **absent from
+`requirements_override.txt`**, now for a measured reason rather than an
+extrapolated one.
 
 ## Print pipeline (20 MP)
 
@@ -221,6 +236,107 @@ peak torch VRAM stays at tens of MiB.
 Verified at 1:1 against plain lanczos: letterforms gain clean hard edges, feather
 barbs separate individually. It does introduce faint white speckle on smooth
 surfaces — hallucinated micro-contrast, minor at print scale.
+
+## Qwen-Image-2.1
+
+ComfyUI v0.37.0, the `int8_convrot` DiT and encoder plus the bf16 VAE. That set
+is 16.10 GiB against 22.6 usable, so DiT and encoder stay co-resident and a
+prompt change never pays an encoder reload.
+
+**Renders are bit-identical across server restarts.** The same seed, steps and
+resolution measured MAD 0.000 between two separate server processes, so any
+non-zero difference below is a real one rather than sampling jitter.
+
+### Resolution, 25 steps
+
+Loaders and the text encode stay cached between runs, so these isolate sampling
+plus VAE decode.
+
+| Output | MP   | Time  | s/MP | Peak VRAM |
+| ------ | ---- | ----- | ---- | --------- |
+| 1024²  | 1.05 | 14.1s | 13.4 | 16.42 GiB |
+| 1440²  | 2.07 | 32.5s | 15.7 | 17.10 GiB |
+| 2048²  | 4.19 | 80.5s | 19.2 | 19.89 GiB |
+
+Cost per megapixel **rises** with resolution here, the opposite of FLUX.2-dev on
+this card, where it improved from 93.9 to 80.5 s/MP. 4 MP still fits with 2.7 GiB
+to spare, which is why the workflows generate at 2048² rather than the 1 MP the
+upstream template ships.
+
+### Steps at 2048², seed 42
+
+`lap.var` is Laplacian variance, a proxy for acuity; MAD is against the 25-step
+render.
+
+| Steps | Time   | s/step | lap.var | MAD vs 25 |
+| ----- | ------ | ------ | ------- | --------- |
+| 25    | 83.3s  | 3.33   | 669.8   | 0         |
+| 40    | 132.6s | 3.32   | 736.3   | 9.66      |
+
+40 steps buys **9.9% more acuity for 59% more time**. Qwen's reference pipeline
+specifies 40 and the workflows ship it. Drop to 25 while iterating on a prompt.
+
+### The shift default is right, and the obvious reading of it is wrong
+
+`supported_models.QwenImage21` sets `shift: 0.69` under a comment calling it
+"scheduler mu". It really is mu, not the multiplicative alpha, and the code path
+is what settles it: `QwenImage21` is built with `ModelType.FLUX`, which selects
+`ModelSamplingFlux`, whose `sigma()` is
+`flux_time_shift(mu, 1.0, t) = exp(mu) / (exp(mu) + (1/t - 1))`. The effective
+alpha is therefore exp(0.69) = 1.9937.
+
+Measured against `ModelSamplingAuraFlow`, which takes alpha directly, at 2048²,
+25 steps, seed 777:
+
+| Override   | Time  | MAD vs untouched | lap.var |
+| ---------- | ----- | ---------------- | ------- |
+| none       | 83.3s | 0                | 774.0   |
+| shift 0.69 | 84.2s | 15.61            | 795.0   |
+| shift 2.00 | 84.0s | **0.85**         | 774.7   |
+| shift 3.72 | 83.2s | 14.16            | 763.5   |
+
+The untouched model lands on alpha 2.00, which is the exponentiation showing up
+in pixels. Forcing 0.69 as alpha is the error, not the default.
+
+3.72 is exp of the mu that diffusers' *dynamic* shifting would choose at 2048²,
+where seq_len 16384 overshoots the scheduler config's 8192 ceiling. ComfyUI's mu
+is static and calibrated for 1024². Matching the reference costs the same time
+and measures slightly **less** acute, so the static value stays and no workflow
+here wires a sampling override.
+
+### Edit, `QwenImage21Cache` device
+
+1 MP reference, 40 steps, all four at a matched cache state.
+
+| device | Time  | Peak VRAM |
+| ------ | ----- | --------- |
+| auto   | 27.0s | 18.00 GiB |
+| gpu    | 28.7s | 19.94 GiB |
+| cpu    | 29.6s | 18.05 GiB |
+| off    | 48.0s | 18.29 GiB |
+
+The prefix cache is worth **44%**. `auto` is both the fastest and the lightest,
+so the shipped default needs no change; `off` exists to rule the cache out when
+debugging, not as a tuning option.
+
+## Klein 9B
+
+First measurement on this box. The Klein numbers in
+[`hardware-16gb-ada.md`](./hardware-16gb-ada.md) were taken on the other machine
+and do not transfer.
+
+| Sidebar | Checkpoint | Settings                            | Time                      | Peak VRAM |
+| ------- | ---------- | ----------------------------------- | ------------------------- | --------- |
+| 1 Turbo | distilled  | 1440², 4 steps, cfg 1               | **6.7s** warm, 20.1s cold | 17.97 GiB |
+| 2 Draft | base       | 1440², 20 steps, cfg 5              | 64.7s                     | 20.71 GiB |
+| 3 Print | base       | 1440², 28 steps, cfg 5, 4x to 4472² | 124.8s                    | 19.98 GiB |
+| 4 Edit  | distilled  | 1 MP reference, 4 steps, cfg 1      | 8.8s                      | 19.10 GiB |
+
+DiT, encoder and VAE total 17.17 GiB against 22.6 usable, so **there is no
+evict/reload on a prompt change here**. Consecutive Turbo runs at different seeds
+measured 7.5s then 6.7s; the Ada box pays 7.4–8.4s for that same swap because its
+14.76 GiB cannot hold both. The settings above were tuned on Ada and are kept
+unchanged, since nothing in these numbers argues against them.
 
 ## Installed on this box
 
