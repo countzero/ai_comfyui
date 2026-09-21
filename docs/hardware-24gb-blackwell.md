@@ -263,18 +263,38 @@ this card, where it improved from 93.9 to 80.5 s/MP. 4 MP still fits with 2.7 Gi
 to spare, which is why the workflows generate at 2048² rather than the 1 MP the
 upstream template ships.
 
-### Steps at 2048², seed 42
+### Steps at 2048², three prompts, three seeds
 
-`lap.var` is Laplacian variance, a proxy for acuity; MAD is against the 25-step
-render.
+An earlier version of this table compared one image at one seed and scored it
+with Laplacian variance. That was not enough to decide anything: lap.var rewards
+grain as readily as detail, so "sharper" and "noisier" score the same way. The
+prompt set below is in *The benchmark prompt set*.
 
-| Steps | Time   | s/step | lap.var | MAD vs 25 |
-| ----- | ------ | ------ | ------- | --------- |
-| 25    | 83.3s  | 3.33   | 669.8   | 0         |
-| 40    | 132.6s | 3.32   | 736.3   | 9.66      |
+| Steps | Mean time | s/step |
+| ----- | --------- | ------ |
+| 25    | 83.6s     | 3.34   |
+| 40    | 135.4s    | 3.39   |
+| 60    | 202.5s    | 3.38   |
 
-40 steps buys **9.9% more acuity for 59% more time**. Qwen's reference pipeline
-specifies 40 and the workflows ship it. Drop to 25 while iterating on a prompt.
+Cost per step is flat, so step count buys time linearly and the only question is
+where the image stops changing.
+
+**40 steps ships, decided by convergence rather than by eye.** Distance to a
+60-step reference, per matched prompt and seed:
+
+| Prompt      | mean MAD 25→60 | mean MAD 40→60 | ratio |
+| ----------- | -------------- | -------------- | ----- |
+| S1 text     | 15.00          | 10.95          | 1.46  |
+| S2 texture  | 15.04          | 6.07           | 2.50  |
+| S3 portrait | 11.09          | 5.57           | 1.99  |
+
+40 is closer to the converged result in **9 of 9 pairs**, by a mean factor of
+1.99. This needs no aesthetic judgement: 25 steps is roughly twice as far from
+where the schedule is heading. For continuity, lap.var also rose in 9 of 9 pairs
+(+31.6% mean, range +7.3 to +48.0), but the convergence ratio is what decided it.
+
+Drop to 25 while iterating on a prompt; the composition is already settled there,
+only the refinement is not.
 
 ### The shift default is right, and the obvious reading of it is wrong
 
@@ -337,6 +357,60 @@ evict/reload on a prompt change here**. Consecutive Turbo runs at different seed
 measured 7.5s then 6.7s; the Ada box pays 7.4–8.4s for that same swap because its
 14.76 GiB cannot hold both. The settings above were tuned on Ada and are kept
 unchanged, since nothing in these numbers argues against them.
+
+## The benchmark prompt set
+
+The prompts, the seeds and the scoring rules are [`benchmarks.md`](./benchmarks.md).
+They are kept there rather than here because they have to stay fixed across
+machines and sessions for these numbers to mean anything, which makes them a
+contract rather than a measurement.
+
+Scoring for the characterization prompts is by eye, so **those results are not
+comparable to published GenEval scores.**
+
+## Previews
+
+`--preview-method taesd` with a derived `taef2_decoder`
+([`models.md`](./models.md) → *Preview decoder*). Correlation between the last
+preview frame and the final render, same seed:
+
+| Model          | Previewer           | Correlation |
+| -------------- | ------------------- | ----------- |
+| Klein 9B       | taef2 TAESD         | 0.998       |
+| Klein 9B       | latent2rgb          | 0.948       |
+| Qwen-Image-2.1 | latent2rgb (forced) | 0.878       |
+
+Costs 2.4% (91.0s against 88.8s at 2048², 25 steps). Qwen cannot be improved:
+its latent format declares no decoder. Its preview is soft rather than wrong.
+
+## Desktop responsiveness: only one lever works
+
+This GPU drives the display, and a render pins it at 99% utilisation. What was
+tried:
+
+| Approach                      | Result                                                        |
+| ----------------------------- | ------------------------------------------------------------- |
+| `--vram-headroom 2.5`         | **works.** Desktop floor 2.85 → 3.96 GiB, no time cost        |
+| Process priority Idle         | useless: utilisation unchanged, render ~30% slower            |
+| `nvidia-smi -pl` / `-lgc`     | refused by firmware, and pointless: already at the 95 W cap   |
+| MIG                           | unavailable on this laptop GPU                                |
+| Per-step yield, 25%           | +10% time, idle samples 14.8% → 23.3%                         |
+| Per-step yield, 50%           | +47% time, idle samples 34.1%                                 |
+
+The card is **power-limited, not clock-limited**: 94.7 W median against a 95 W
+cap for 86% of a render, SM clocks at ~1300 of 3090 MHz. There is no headroom to
+give away, which is why every throttling approach either fails or just removes
+work.
+
+Yielding the GPU between model evaluations does free time, but at step
+granularity the gaps land about 3.3s apart while a 60 Hz desktop wants one every
+16.7 ms, so it converts a constant stall into an intermittent one. Finer
+granularity is available through the block hooks, but
+`comfy/ldm/qwen_image21/model.py` disables the prefix KV cache whenever a block
+is hooked, which costs 44% on edits. Neither trade is worth shipping.
+
+The effective lever is less work: 1440² renders in ~33s against ~83s and peaks
+at 17.1 GiB against 19.9.
 
 ## Installed on this box
 

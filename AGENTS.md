@@ -92,6 +92,7 @@ All under `docs/`; the sentence is the document's own opening line.
 | ---------------------------- | ----------------------------------------------------------------------------- |
 | `conventions.md`             | Read when writing or reviewing code, a comment, a commit message or prose     |
 | `workflows.md`               | Read when building or editing a workflow graph, or when the sidebar is wrong  |
+| `benchmarks.md`              | Read when measuring a model, or before quoting a number one of these produced |
 | `http-api.md`                | Read when driving the server over HTTP, or when timing a run                  |
 | `hardware-16gb-ada.md`       | Read when working on the RTX 4070 Ti SUPER box                                |
 | `hardware-24gb-blackwell.md` | Read when working on the RTX PRO 5000 Blackwell box                           |
