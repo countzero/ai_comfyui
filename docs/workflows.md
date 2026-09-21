@@ -111,6 +111,76 @@ above, and an A/B of two step counts measures nothing at 1024².
 BFL recommends up to 2 MP and caps FLUX.2 at 4 MP, which makes 1440² (1.98 MP)
 the top of the recommended band and 2048² the ceiling. 1024² is 1 MP, not 2.
 
+## Qwen-Image-2.1 node graph
+
+```
+UNETLoader ─────────────────────────────────────────┐
+CLIPLoader(type=qwen_image) → TextEncodeQwenImage21 ─┤
+VAELoader ──────────────────────────────────────────┤
+EmptyLatentImage(w,h) ──────────────────────────────┤
+                       KSampler(steps, cfg 1, euler, simple) ←┘
+                       → VAEDecode → SaveImageAdvanced
+```
+
+One checkpoint covers generation and editing, so no workflow swaps models. Four
+things about this graph are not obvious from the node names:
+
+- **`EmptyLatentImage` is correct here**, despite emitting 4 channels at `/8`
+  against the model's 64 at `/16`. It tags its output `downscale_ratio_spacial: 8`
+  and `nodes.py:1574` re-channels and rescales it. This is the opposite of FLUX.2,
+  which needs `EmptyFlux2LatentImage`.
+- **`SaveImageAdvanced`, not `SaveImage`.** The VAE is a 64-channel RGBA
+  autoencoder, so every decode is 4-channel, including fully opaque ones.
+  `SaveImage` happens to write RGBA through PIL; `SaveImageAdvanced` does it by
+  contract with `png` and `8-bit` named.
+- **`type=qwen_image`** is shared with Qwen-Image 2.0; the encoder is resolved
+  from the state dict, the same dispatch `flux2` uses across dev and klein.
+- **cfg 1 makes the negative prompt inert.** The node still requires the field.
+
+### Editing
+
+Editing takes the latent from `TextEncodeQwenImage21`'s third output rather than
+from `EmptyLatentImage`, so the canvas matches the reference, and inserts
+`QwenImage21Cache` between the loader and the sampler. `resolution` 0 keeps the
+source size; any other value is a total-pixel budget, not a per-side length.
+References are addressed in the prompt as `<image1>`, `<image2>` and so on.
+
+Two API serializations here cannot be read off `/object_info` and had to be found
+against a running server:
+
+- A dynamic combo flattens to its parent key plus dot-prefixed children:
+  `format`, `format.bit_depth`, `format.input_color_space`. Passing them nested
+  **validates and then silently drops the value at execution**.
+- An autogrow slot uses the same dot form, `images.image_1`, which is also what
+  the frontend writes into the UI graph.
+
+## Previews decode for FLUX.2 and approximate for Qwen
+
+`--preview-method auto` is a trap: `latent_preview.py:get_previewer` rewrites
+`Auto` to `Latent2RGB` before the TAESD branch is reachable, so it never attempts
+a real decode. `start_comfyui.ps1` passes `taesd` instead, which is never worse
+because a model with no approximate decoder falls back on its own.
+
+Whether a real decode happens is a property of the latent format, and
+`taesd_decoder_name` is set in `__init__`, so reading it off the class gives
+`None` for every model and is misleading.
+
+| Latent format | `taesd_decoder_name` | Preview                      |
+| ------------- | -------------------- | ---------------------------- |
+| `Flux2`       | `taef2_decoder`      | decoded, correlates 0.998    |
+| `QwenImage21` | `None`               | latent2rgb, correlates 0.878 |
+
+Qwen-Image-2.1 therefore **cannot** have a decoded preview: no approximate
+decoder exists for its 64-channel, 16x VAE. Its preview is a linear projection,
+soft and desaturated but structurally faithful, not the colour noise that phrase
+usually implies. `--preview-method taesd` does not change it and is not broken
+when it looks blurry.
+
+Previews are never throttled. `ProgressBar.update_absolute` applies a 100 ms and
+0.5% limit to progress events, but a frame carrying a preview short-circuits
+that and sends immediately, so there is exactly one per sampler step. A preview
+that seems slow is a slow step, not a slow preview.
+
 ## Seeds are not portable across resolutions
 
 The same seed at a different resolution gives a different image, not a bigger

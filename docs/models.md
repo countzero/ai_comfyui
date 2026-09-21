@@ -140,6 +140,31 @@ CC-BY-4.0); `4xNomosWebPhoto_RealPLKSR` (30 MB vs 140 MB if speed matters);
 `4x-UltraSharpV2` (kim2091, widely used, but **CC-BY-NC-SA-4.0 — non-commercial**).
 `4x-UltraSharp` v1 is Mega-only and not curl-fetchable.
 
+## Preview decoder: `taef2_decoder`, derived not downloaded
+
+`--preview-method taesd` decodes previews through `models/vae_approx/`, and the
+filename must start with the latent format's `taesd_decoder_name`. FLUX.2 wants
+`taef2_decoder`, which **nobody publishes**. `madebyollin/taef2` ships one
+`taef2.safetensors` holding both halves of the autoencoder, keyed
+`encoder.layers.N.*` and `decoder.layers.N.*`, while ComfyUI's `TAESD` loads a
+decoder-only state dict keyed by bare `nn.Sequential` indices. Loading the
+published file directly fails every FLUX.2 render with a state-dict mismatch.
+
+The two are one remap apart. ComfyUI's decoder starts with a `Clamp` at index 0,
+so its convolutions sit one later than the published ones: `decoder.layers.N`
+maps to `N+1`, sub-indices unchanged. All 79 tensors match pairwise by shape.
+
+Derive it rather than trusting a rename, and verify functionally: a decoded
+preview correlates 0.998 with the final render, against 0.948 for the latent2rgb
+fallback it replaces. If Comfy-Org or madebyollin ever publish a real
+`taef2_decoder`, prefer it and drop the derived copy.
+
+The other decoders are published and need no work: `taesd_decoder` and
+`taesdxl_decoder` from `madebyollin/taesd`, `taef1_decoder` and `taesd3_decoder`
+from the community `vae_approx` mirrors. Qwen-Image-2.1 has none and cannot: its
+latent format declares no `taesd_decoder_name` and no approximate decoder exists
+for a 64-channel, 16x VAE.
+
 ## fp8 beats GGUF, for an architectural reason
 
 GGUF dequantizes to bf16 before every matmul (`ComfyUI-GGUF/ops.py:177` calls
