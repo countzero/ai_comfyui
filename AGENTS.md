@@ -58,7 +58,8 @@ Where a new paragraph goes is decided by its kind, not by its topic:
 | A number measured on one machine                   | the hardware profile it was measured on                  |
 | What a user of this repository does                | `README.md`                                              |
 | An inventory that changes on its own               | nowhere: point at the file that defines it               |
-| The history of this repository                     | git, never a document                                    |
+| Why a past change was made                         | git, never a document                                    |
+| What shipped in a version                          | `CHANGELOG.md`, curated at release time                  |
 
 `README.md` and the documents under `docs/` describe the same mechanics for different readers, which makes them the pair most likely to grow a second copy. `README.md` says what a user does; a reference document says what the contract is and which file owns it. The pointers run one way only, so the two cannot loop.
 
@@ -79,6 +80,7 @@ Ad-hoc artifacts (test renders, diffs, scratch scripts, traces) go under `.tmp/s
 - LF line endings, enforced by `.gitattributes`. One long-lived branch, `main`.
 - Commits take the [Conventional Commits](https://www.conventionalcommits.org/) form, `type(scope): imperative summary`, with the reasoning in the body and no `Co-Authored-By` trailer. `docs/conventions.md` → *Commit messages*.
 - `vendor/ComfyUI` is a submodule, so a bumped pointer is its own commit rather than a side effect of another change.
+- A **release** is a tag on `main` plus a `CHANGELOG.md` entry, and never a built asset: GitHub's own source archive already carries `workflows/` and the docs naming the model files each graph needs. A version pins the composition, not a program. `docs/conventions.md` → *Changelog*, *Releases*.
 
 ## Output Formatting
 
