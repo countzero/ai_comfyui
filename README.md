@@ -2,7 +2,7 @@
 
 Instructions on how to manually install [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on a machine with a NVIDIA GPU. This includes a script that automates the following steps:
 
-1. Fetching the latest version of [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
+1. Fetching the recorded version of [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
 2. Installing specifiy PyTorch packages with NVIDIA support
 3. Updating the Python dependencies of ComfyUI
 4. Starting the ComfyUI server

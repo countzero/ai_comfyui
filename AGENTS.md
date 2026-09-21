@@ -8,7 +8,7 @@ This file is the canonical agent-instructions source for this repository, read n
 - **`conda run` gives false negatives.** `conda run -n ComfyUI python -c "import torch"` from a non-activated shell reports `ModuleNotFoundError` while torch is installed and working. It resolves to the identical interpreter (`C:\Miniconda\envs\ComfyUI\python.exe`), so the interpreter is not the variable. Never conclude that a package is missing from a bare `conda run`.
 - **Nine conda environments exist on this machine and only `ComfyUI` is correct.**
 - **Two machines share this repository and neither profile is "the current box".** Confirm the GPU from `GET /system_stats` before trusting any measured number, because the installed model set differs too. `docs/hardware-24gb-blackwell.md`, `docs/hardware-16gb-ada.md`.
-- **Do not run `rebuild_comfyui.ps1` without a reason.** It moves submodules. Pass `-version` whenever a specific one is wanted: the default asks the GitHub API for `releases/latest`, which lags a tag that was pushed without being cut as a release, so a bare run can silently reinstall the version already checked out.
+- **`rebuild_comfyui.ps1` restores the recorded submodule pointers**, which is what makes a tag of this repository reproduce the ComfyUI its benchmarks were measured against. `-version` checks out one tag instead; `-latest` moves the pointers to upstream's `releases/latest`, which lags a tag pushed without a release being cut. Both leave a pointer bump to commit.
 - The launch flags, and the benchmark behind each one, are the header comment of `start_comfyui.ps1`.
 
 ## Layout
