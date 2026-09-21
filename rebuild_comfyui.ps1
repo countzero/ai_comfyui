@@ -8,11 +8,9 @@ Automatically rebuild ComfyUI for a Windows environment.
 This script automatically rebuilds ComfyUI for a Windows environment.
 
 .PARAMETER version
-Checks out one specific ComfyUI tag or commit.
-
-.PARAMETER latest
-Moves the submodule pointers to the upstream branch head, then checks out
-upstream's latest release. Leaves a pointer bump to commit.
+Specifies a ComfyUI commit or tag to checkout a specific version. Defaults to
+upstream's latest release. The custom-node submodules are unaffected: they stay
+at the commit recorded in this repository.
 
 .PARAMETER help
 Shows the manual on how to use this script.
@@ -23,17 +21,14 @@ Shows the manual on how to use this script.
 .EXAMPLE
 .\rebuild_comfyui.ps1 -version "v0.3.59"
 
-.EXAMPLE
-.\rebuild_comfyui.ps1 -latest
-
 #>
 
+# Without CmdletBinding an unrecognized argument lands in $args instead of
+# failing, so a mistyped -verison would silently build the default version.
+[CmdletBinding()]
 Param (
     [String]
     $version,
-
-    [switch]
-    $latest,
 
     [switch]
     $help
@@ -46,12 +41,9 @@ if ($help) {
 
 $stopwatch = [System.Diagnostics.Stopwatch]::startNew()
 
-if ($latest -And $version) {
-    Write-Host "Pass either -version or -latest, not both." -ForegroundColor "Red"
-    exit 1
-}
-
-if ($latest) {
+# We are defaulting the optional version to the tag of the
+# "latest" release in GitHub to avoid unstable versions.
+if (!$version) {
 
     $path = [regex]::Match(
         (git -C .\vendor\ComfyUI\ ls-remote --get-url),
@@ -65,28 +57,35 @@ if ($latest) {
 }
 
 Write-Host "Building the ComfyUI project..." -ForegroundColor "Yellow"
-Write-Host "Version: $(if ($version) { $version } else { 'as recorded' })" -ForegroundColor "DarkYellow"
+Write-Host "Version: ${version}" -ForegroundColor "DarkYellow"
 
 # We are resetting every submodule to their head prior
 # to updating them to avoid any merge conflicts.
 git submodule foreach --recursive git reset --hard
 
-# --remote discards the recorded pointer for the upstream branch head, which is
-# what made a checkout of this repository unable to reproduce the ComfyUI its
-# benchmarks were measured against. Without it the recorded commit is restored.
-if ($latest) {
-    git submodule update --init --recursive --remote --merge --force
-} else {
-    git submodule update --init --recursive --force
+# Only vendor/ComfyUI is advanced per build. The custom nodes stay at the commit
+# recorded here, because advancing them is a decision with its own commit rather
+# than a side effect of a rebuild. They also track "main" where ComfyUI tracks
+# "master", so the single blanket update this replaces could not serve all three.
+$pinnedPaths = git config --file .gitmodules --get-regexp '^submodule\..+\.path$' |
+    ForEach-Object { ($_ -split '\s+', 2)[1] } |
+    Where-Object { $_ -ne 'vendor/ComfyUI' }
+
+foreach ($pinnedPath in $pinnedPaths) {
+    Write-Host "Syncing ${pinnedPath} to its recorded commit..." -ForegroundColor "DarkYellow"
+    git -C $pinnedPath fetch origin
+    git submodule update --init --force -- $pinnedPath
 }
 
-if ($version) {
+git submodule update --init --force -- vendor/ComfyUI
 
-    # A tag pushed without a release being cut is not reachable by the fetch the
-    # line above performs, so ask for tags before checking one out.
-    git -C .\vendor\ComfyUI fetch --tags
-    git -C .\vendor\ComfyUI checkout $version
-}
+# A tag pushed without a release being cut is not reachable by the fetch that
+# --init performs, so ask for tags before checking one out.
+git -C .\vendor\ComfyUI fetch origin --tags
+
+# We are checking out a specific version (tag / commit)
+# of the repository to enable quick debugging.
+git -C .\vendor\ComfyUI checkout $version
 
 # Copies custom nodes into the correct directory.
 function Copy-CustomNodes {

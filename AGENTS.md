@@ -8,7 +8,7 @@ This file is the canonical agent-instructions source for this repository, read n
 - **`conda run` gives false negatives.** `conda run -n ComfyUI python -c "import torch"` from a non-activated shell reports `ModuleNotFoundError` while torch is installed and working. It resolves to the identical interpreter (`C:\Miniconda\envs\ComfyUI\python.exe`), so the interpreter is not the variable. Never conclude that a package is missing from a bare `conda run`.
 - **Nine conda environments exist on this machine and only `ComfyUI` is correct.**
 - **Two machines share this repository and neither profile is "the current box".** Confirm the GPU from `GET /system_stats` before trusting any measured number, because the installed model set differs too. `docs/hardware-24gb-blackwell.md`, `docs/hardware-16gb-ada.md`.
-- **`rebuild_comfyui.ps1` restores the recorded submodule pointers**, which is what makes a tag of this repository reproduce the ComfyUI its benchmarks were measured against. `-version` checks out one tag instead; `-latest` moves the pointers to upstream's `releases/latest`, which lags a tag pushed without a release being cut. Both leave a pointer bump to commit.
+- **Each build advances `vendor/ComfyUI` to upstream's `releases/latest`**, so local edits there are lost by design and a bare run leaves a pointer bump to commit. `-version` checks out one tag or commit instead, which is how a benchmark gets re-measured against the version that produced it. The custom-node submodules are never advanced by the build script and must be bumped by hand. `docs/build.md` → *Submodule lifecycle*.
 - The launch flags, and the benchmark behind each one, are the header comment of `start_comfyui.ps1`.
 
 ## Layout
@@ -59,7 +59,7 @@ Where a new paragraph goes is decided by its kind, not by its topic:
 | What a user of this repository does                | `README.md`                                              |
 | An inventory that changes on its own               | nowhere: point at the file that defines it               |
 | Why a past change was made                         | git, never a document                                    |
-| What shipped in a version                          | `CHANGELOG.md`, curated at release time                  |
+| What shipped in a version                          | `CHANGELOG.md`, in the commit that shipped it            |
 
 `README.md` and the documents under `docs/` describe the same mechanics for different readers, which makes them the pair most likely to grow a second copy. `README.md` says what a user does; a reference document says what the contract is and which file owns it. The pointers run one way only, so the two cannot loop.
 
@@ -80,7 +80,8 @@ Ad-hoc artifacts (test renders, diffs, scratch scripts, traces) go under `.tmp/s
 - LF line endings, enforced by `.gitattributes`. One long-lived branch, `main`.
 - Commits take the [Conventional Commits](https://www.conventionalcommits.org/) form, `type(scope): imperative summary`, with the reasoning in the body and no `Co-Authored-By` trailer. `docs/conventions.md` → *Commit messages*.
 - `vendor/ComfyUI` is a submodule, so a bumped pointer is its own commit rather than a side effect of another change.
-- A **release** is a tag on `main` plus a `CHANGELOG.md` entry, and never a built asset: GitHub's own source archive already carries `workflows/` and the docs naming the model files each graph needs. A version pins the composition, not a program. `docs/conventions.md` → *Changelog*, *Releases*.
+- A **release** is a tag on `main` plus a `CHANGELOG.md` entry, and never a built asset: GitHub's own source archive already carries `workflows/` and the docs naming the model files each graph needs. A version pins the scripts, the workflows and the custom-node commits, never ComfyUI. `docs/conventions.md` → *Releases*.
+- A **changelog bullet** records what a reader can observe by running the repository, and lands in the commit that changes it. A finding measured while tuning earns none; prose earns one only when a `docs/` file is added or removed, a restructure moves where a reader looks, or a published claim a reader acts on is corrected. `docs/conventions.md` → *Changelog*.
 
 ## Output Formatting
 
@@ -93,6 +94,7 @@ All under `docs/`; the sentence is the document's own opening line.
 | Document                     | When to read                                                                  |
 | ---------------------------- | ----------------------------------------------------------------------------- |
 | `conventions.md`             | Read when writing or reviewing code, a comment, a commit message or prose     |
+| `build.md`                   | Read when changing the build script, or a submodule is at the wrong commit    |
 | `workflows.md`               | Read when building or editing a workflow graph, or when the sidebar is wrong  |
 | `benchmarks.md`              | Read when measuring a model, or before quoting a number one of these produced |
 | `http-api.md`                | Read when driving the server over HTTP, or when timing a run                  |
