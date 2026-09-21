@@ -20,7 +20,9 @@
     created in the UI and never added to the table does not survive a deploy.
 
     Only *_ui.json files are published. The *_api.json twins drive POST /prompt
-    and would render as broken graphs in the canvas.
+    and would render as broken graphs in the canvas. A workflow missing either
+    half is warned about rather than skipped, since the _ui half still deploys
+    and a sidebar entry without an API twin is usable from the canvas.
 
 .PARAMETER Force
     Overwrite workflows already present in the user directory.
@@ -59,6 +61,14 @@ $workflows = [ordered]@{
 }
 
 Write-Host "Deploying workflows to ComfyUI..." -ForegroundColor "Yellow"
+
+# Only the _ui half is published, so a missing _api twin is invisible here until
+# something tries to POST /prompt with it. Nothing else checks the pairing.
+Get-ChildItem -LiteralPath $sourceDirectory -File -Filter "*.json" |
+    ForEach-Object { $_.Name -replace '_(ui|api)\.json$', '' } |
+    Group-Object |
+    Where-Object { $_.Count -ne 2 } |
+    ForEach-Object { Write-Warning "Unpaired workflow, needs a _ui.json and an _api.json: $($_.Name)" }
 
 if (-Not (Test-Path -LiteralPath $targetDirectory)) {
     New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null

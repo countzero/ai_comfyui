@@ -9,6 +9,11 @@ endpoint. API format is `{id: {class_type, inputs}}`; UI format needs `nodes` an
 `links` arrays. `workflows/` holds both halves of each pair, `<name>_ui.json` and
 `<name>_api.json`, and is the durable copy of both.
 
+`deploy_workflows.ps1` warns on any `workflows/` entry without its twin, and is
+the only thing that checks the pairing. It warns rather than fails because the
+`_ui` half still deploys, and `start_comfyui.ps1` calls it on every launch: a
+gap on the scripting side should not stop the server from starting.
+
 `comfyui-workflow-templates` ships no local JSON. Build a new graph from
 `/object_info/{node_class}` or copy one out of `vendor/ComfyUI/blueprints/`.
 
