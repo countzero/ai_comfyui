@@ -154,5 +154,8 @@ Cutting one:
 1. Confirm `git status` is clean and the custom-node pins are the intended ones.
 2. Commit the change with its `CHANGELOG.md` version heading and bullets.
 3. `git tag -a v<x.y.z> -m "v<x.y.z>"`, then push `main` and the tag.
-4. `gh release create v<x.y.z>` with a body linking the changelog entry and the
-   compare against the previous tag.
+4. `gh release create v<x.y.z>` with a body of exactly two links, the changelog
+   entry and the compare against the previous tag, and nothing else. What a
+   reader needs is in the changelog; prose on the release page is a second copy
+   that drifts from it. A first release has no previous tag, so it links its
+   commit list instead.
