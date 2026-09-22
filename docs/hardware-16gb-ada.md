@@ -8,8 +8,9 @@ from two, and neither is "the current one": this profile is the box with an
 other is [`hardware-24gb-blackwell.md`](./hardware-24gb-blackwell.md).
 `GET /system_stats` says which one you are on.
 
-All figures below were measured 2026-09-19 against a running server on the Ada
-box. None of them transfer to Blackwell.
+Every figure below was measured against a running server on this box, the Klein
+ones on 2026-09-19 and the Qwen-Image-2.1 ones on 2026-09-22. None of them
+transfer to Blackwell.
 
 ## Baseline
 
@@ -19,7 +20,7 @@ box. None of them transfer to Blackwell.
 | GPU (cuda:1) | RTX 2060 SUPER, 8 GiB, sm_75 — unused by ComfyUI       |
 | RAM          | **127.9 GiB** (~103 free)                              |
 | torch        | 2.11.0+cu130, Python 3.14.7                            |
-| ComfyUI      | v0.36.0 (`ee71d5c4`)                                   |
+| ComfyUI      | v0.37.0 (`73c9bad4`)                                   |
 
 `nvidia-smi` lists the 2060 first, but CUDA's default `FASTEST_FIRST` ordering
 puts the 4070 Ti SUPER at index 0, which is what ComfyUI picks up. Confirm with
@@ -33,18 +34,27 @@ Usable VRAM is **~14.76 GiB** (`vram_free` at idle); the desktop holds ~1.2 GiB.
 
 ## Installed on this box
 
-As of 2026-09-19. Source repos and quant tables are [`models.md`](./models.md).
+Verified against the filesystem 2026-09-22. Source repos and quant tables are
+[`models.md`](./models.md).
 
-| Role            | File                                   | GiB  |
-| --------------- | -------------------------------------- | ---- |
-| DiT (distilled) | `flux-2-klein-9b-fp8.safetensors`      | 8.79 |
-| DiT (base)      | `flux-2-klein-base-9b-fp8.safetensors` | 8.91 |
-| Text encoder    | `qwen_3_8b_fp8mixed.safetensors`       | 8.07 |
-| VAE             | `flux2-vae.safetensors`                | 0.31 |
-| Upscaler        | `4xNomos2_hq_dat2.pth`                 | 0.13 |
+| Role                     | File                                      | GiB  |
+| ------------------------ | ----------------------------------------- | ---- |
+| Klein 9B DiT (distilled) | `flux-2-klein-9b-fp8.safetensors`         | 8.79 |
+| Klein 9B DiT (base)      | `flux-2-klein-base-9b-fp8.safetensors`    | 8.91 |
+| Klein 9B encoder         | `qwen_3_8b_fp8mixed.safetensors`          | 8.07 |
+| FLUX.2 VAE               | `flux2-vae.safetensors`                   | 0.31 |
+| Qwen-Image-2.1 DiT       | `qwen_image_2.1_int8_convrot.safetensors` | 6.76 |
+| Qwen-Image-2.1 encoder   | `qwen3vl_8b_int8_convrot.safetensors`     | 8.71 |
+| Qwen-Image-2.1 VAE       | `qwen_image_2.1_vae_bf16.safetensors`     | 0.63 |
+| Upscaler                 | `4xNomos2_hq_dat2.pth`                    | 0.13 |
 
-**Encoder and DiT are not co-resident**: the set above totals 17.3 GiB against
-14.76 usable, so the encoder evicts before the DiT loads.
+42.31 GiB total. Klein 9B and Qwen-Image-2.1 are both complete, so 8 of the 11
+sidebar entries resolve their weights. The three under `FLUX.2 Dev` do not:
+that model is installed on the Blackwell box only.
+
+**Klein's encoder and DiT are not co-resident**: that set totals 17.3 GiB against
+14.76 usable, so the encoder evicts before the DiT loads. Qwen-Image-2.1 behaves
+differently despite a similar paper total; see its own section below.
 
 The eviction is cheap though. Measured on the distilled model at 1440²/4 steps:
 
@@ -184,6 +194,56 @@ step-independent and only the step count changes.
 
 Peak VRAM never exceeded **14.45 GiB** across all four workflows, against 14.76
 usable — comfortable but not spacious. The Edit workflow is the tightest.
+
+## Qwen-Image-2.1
+
+Installed 2026-09-22 against ComfyUI v0.37.0, which is the minimum this model
+needs. `mm.supports_int8_compute()` returns `True` on sm_89, so the
+`int8_convrot` pair runs on its own kernels instead of falling back to bf16.
+
+Shipped `1 Text to Image` defaults, 2048², 40 steps, cfg 1, euler/simple:
+
+| Case                      | Time   | Peak VRAM |
+| ------------------------- | ------ | --------- |
+| cold, nothing resident    | 127.6s | 12.49 GiB |
+| warm, conditioning cached | 125.1s | 9.40 GiB  |
+| new prompt, re-encoded    | 123.0s | 12.46 GiB |
+
+**The 16.10 GiB paper total never becomes VRAM pressure.** Peak, sampled by
+polling `/system_stats` across eight runs, never passed 12.61 GiB against 14.76
+usable. What governs Klein on this card therefore does not carry over: a prompt
+change costs 1.5s at 1024²/8 steps, and at 2048²/40 it cannot be measured at
+all, because the run-to-run spread across those eight runs is 123.0 to 127.5s
+and swamps it. Nothing here needs tuning for memory.
+
+All three shipped workflows, one run each:
+
+| Sidebar           | Config                   | Time   | Peak VRAM |
+| ----------------- | ------------------------ | ------ | --------- |
+| `1 Text to Image` | 2048², 40 steps          | 127.6s | 12.49 GiB |
+| `2 Edit`          | 768² reference, 40 steps | 13.1s  | 12.49 GiB |
+| `3 Transparent`   | 2048², 40 steps          | 128.6s | 12.30 GiB |
+
+`2 Edit` is cheap because `resolution: 0` keeps the reference size, so a 768²
+reference samples 14% of the pixels a 2048² render does.
+
+`3 Transparent` earns its name mechanically: alpha spans 0 to 255 across all 256
+levels, with 16.3% of pixels fully transparent and 40.8% fully opaque. The
+control is every other render, which is 4-channel too because this VAE is RGBA:
+the edit output above sits at alpha mean 254.3 over 14 levels and holds no fully
+transparent pixel. Four channels prove nothing on this model; only varying alpha
+does.
+
+### The w4a8 encoder was tested and rejected
+
+`qwen3vl_8b_w4a8.safetensors` (5.88 GiB) brings the set to 13.27 GiB and would
+fit under 14.76 usable, which is the only argument for it. It buys no time: the
+prompt-change delta measured 1.4s against the int8 encoder's 1.5s at 1024²/8,
+and +0.3s against its −2.1s at 2048²/40, where a negative cost shows both
+readings are noise rather than signal. It is not a free swap either, measuring
+MAD 11.73 and 7.41 against the int8 encoder on two prompts at a matched seed,
+comparable to the 25-step-to-60-step gap the Blackwell profile records. It is
+**not installed**, and the workflows name the int8 encoder.
 
 ## Benchmarking method
 
