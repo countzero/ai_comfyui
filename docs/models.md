@@ -58,9 +58,12 @@ a 64-channel RGBA VAE at 16x spatial compression.
 | VAE             | `qwen_image_2.1_vae_bf16.safetensors`     | 0.63  |
 
 The int8 pair is what Comfy-Org's own templates load. `int8_convrot` and
-`asym_w4a8_int8` both dispatch through `comfy-kitchen`, and both are disabled
-unless `comfy.model_management.supports_int8_compute()` is true, so on a card
-without int8 tensor cores the bf16 files are the only option.
+`asym_w4a8_int8` both dispatch through `comfy-kitchen`, and `ops.py:1719`
+disables both unless `comfy.model_management.supports_int8_compute()` is true.
+That gate is by backend, not by hardware: `model_management.py:2049` returns
+true for every CUDA device and false only for MPS, Intel XPU, DirectML and
+ixuca. It never reads the compute capability, so the bf16 files are the fallback
+for those four backends rather than for an older NVIDIA card.
 
 The repo also carries `qwen3.5_9b_qwen_image_2.1_pe_t2i` and `..._pe_i2i`, each
 8.82 GiB. Those are Qwen's **prompt rewriting** checkpoints, not ComfyUI text
