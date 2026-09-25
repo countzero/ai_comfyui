@@ -159,6 +159,38 @@ against a running server:
 - An autogrow slot uses the same dot form, `images.image_1`, which is also what
   the frontend writes into the UI graph.
 
+## Krea 2 node graph
+
+```
+UNETLoader ────────────────────────────────────────────────┐
+CLIPLoader(type=krea2) → CLIPTextEncode ─┬─────────────────┤ positive
+                         ConditioningZeroOut ──────────────┤ negative
+EmptyLatentImage(w,h) ─────────────────────────────────────┤
+                   KSampler(8 steps, cfg 1, euler, simple) ←┘
+                   → VAEDecode → SaveImage
+```
+
+Both Krea 2 workflows load the Turbo checkpoint, which is distilled for 8 steps
+at cfg 1, so the negative is `ConditioningZeroOut` and never evaluated. Three
+things are not obvious from the graph:
+
+- **No sampling node.** `supported_models.Krea2` sets `shift: 1.15` on a
+  `ModelType.FLUX` model, so it is `mu` under `flux_time_shift`, and 1.15 is the
+  value Krea's own sampler pins for Turbo at every resolution.
+- **Do not copy `ModelSamplingFlux` out of Comfy-Org's style-reference
+  template.** It interpolates `mu` over 256 to 4096 tokens and returns exactly
+  1.15 at 1024², but 3.23 at 2048², far from what Turbo was distilled at. At 1 MP
+  it is a no-op; above it, it moves the schedule. Derived from
+  `nodes_model_advanced.py`, not yet measured against a render.
+- **The prompt enhancer is lazy.** A `PrimitiveBoolean` drives a
+  `ComfySwitchNode` whose inputs are lazy (`comfy_extras/nodes_logic.py`), so
+  with the toggle off `TextGenerate` is never scheduled and the prompt reaches
+  the encoder verbatim. `PreviewAny` shows the text that was actually encoded.
+
+`2 Print` is `1 Text to Image` with the FLUX.2 print tail appended, at the same
+resolution, steps and seed, so a seed found in the first renders the same
+composition in the second.
+
 ## Previews decode for FLUX.2 and approximate for Qwen
 
 `--preview-method auto` is a trap: `latent_preview.py:get_previewer` rewrites
@@ -174,6 +206,7 @@ Whether a real decode happens is a property of the latent format, and
 | ------------- | -------------------- | ---------------------------- |
 | `Flux2`       | `taef2_decoder`      | decoded, correlates 0.998    |
 | `QwenImage21` | `None`               | latent2rgb, correlates 0.878 |
+| `Wan21`       | `lighttaew2_1`       | decoded, unmeasured          |
 
 Qwen-Image-2.1 therefore **cannot** have a decoded preview: no approximate
 decoder exists for its 64-channel, 16x VAE. Its preview is a linear projection,

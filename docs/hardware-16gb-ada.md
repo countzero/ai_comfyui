@@ -48,9 +48,10 @@ Verified against the filesystem 2026-09-22. Source repos and quant tables are
 | Qwen-Image-2.1 VAE       | `qwen_image_2.1_vae_bf16.safetensors`     | 0.63 |
 | Upscaler                 | `4xNomos2_hq_dat2.pth`                    | 0.13 |
 
-42.31 GiB total. Klein 9B and Qwen-Image-2.1 are both complete, so 8 of the 11
-sidebar entries resolve their weights. The three under `FLUX.2 Dev` do not:
-that model is installed on the Blackwell box only.
+42.31 GiB total. Klein 9B and Qwen-Image-2.1 are both complete, so 8 of the 13
+sidebar entries resolve their weights. The three under `FLUX.2 Dev` do not, since
+that model is installed on the Blackwell box only, and neither do the two under
+`Krea 2`, whose files are not installed here.
 
 **Klein's encoder and DiT are not co-resident**: that set totals 17.3 GiB against
 14.76 usable, so the encoder evicts before the DiT loads. Qwen-Image-2.1 behaves

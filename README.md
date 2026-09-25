@@ -66,6 +66,7 @@ Follow the ComfyUI tutorial on how to use a specific model, e.g.:
 * https://docs.comfy.org/tutorials/flux/flux-2-dev
 * https://docs.comfy.org/tutorials/flux/flux-2-klein#flux-2-klein-9b-workflows
 * https://docs.comfy.org/tutorials/image/qwen/qwen-image-2-1
+* https://docs.comfy.org/tutorials/image/krea/krea-2
 
 Which files each of those needs, where they belong, and the `hf` commands to
 fetch them are in [`docs/models.md`](./docs/models.md).

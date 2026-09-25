@@ -38,8 +38,43 @@ hf download Comfy-Org/Qwen-Image-2.1 `
   --local-dir .\vendor\ComfyUI\models
 ```
 
+Comfy-Org's Krea 2 repo does the same:
+
+```powershell
+hf download Comfy-Org/Krea-2 `
+  diffusion_models/krea2_turbo_fp8_scaled.safetensors `
+  text_encoders/qwen3vl_4b_fp8_scaled.safetensors `
+  vae/qwen_image_vae.safetensors `
+  --local-dir .\vendor\ComfyUI\models
+```
+
 Every other repo below stores the file at a path that does not match, so pull it
 to a scratch directory and move it into the right `models/` subdirectory.
+
+## Krea 2
+
+`Comfy-Org/Krea-2`, released under the Krea 2 Community License; read its terms
+on the model page before any commercial use. A 12B single-stream DiT on the
+16-channel Qwen-Image VAE, with Qwen3-VL-4B as its encoder.
+
+| Role              | File                                   | GiB   |
+| ----------------- | -------------------------------------- | ----- |
+| Turbo DiT (fp8)   | `krea2_turbo_fp8_scaled.safetensors`   | 12.24 |
+| Turbo DiT (nvfp4) | `krea2_turbo_nvfp4.safetensors`        | 7.15  |
+| Turbo DiT (int8)  | `krea2_turbo_int8_convrot.safetensors` | 12.57 |
+| RAW DiT (fp8)     | `krea2_raw_fp8_scaled.safetensors`     | 12.24 |
+| Encoder           | `qwen3vl_4b_fp8_scaled.safetensors`    | 4.88  |
+| VAE               | `qwen_image_vae.safetensors`           | 0.24  |
+
+The workflows load the fp8 Turbo file, which is native on both boxes. nvfp4 is
+native only where `supports_nvfp4_compute()` holds, which needs compute
+capability 10 or higher, so it would run on the Blackwell card and not on Ada.
+**RAW** is the undistilled base that Krea publishes for LoRA training and does
+not recommend for inference; no workflow here loads it.
+
+`qwen_image_vae` is the Qwen-Image v1 VAE, not Qwen-Image-2.1's
+`qwen_image_2.1_vae_bf16`: the two differ in channel count and are not
+interchangeable. Krea 2 needs ComfyUI v0.37.0 or newer.
 
 ## Qwen-Image-2.1
 
@@ -117,7 +152,9 @@ fixed by architecture and cannot be changed by config.
 `CLIPLoader` takes `type=flux2` for **all** of them; ComfyUI auto-detects which
 encoder a checkpoint is from its state dict (`comfy/sd.py`). Qwen-Image-2.1
 follows the same pattern under `type=qwen_image`, which it shares with
-Qwen-Image 2.0.
+Qwen-Image 2.0. Krea 2 takes `type=krea2`, and its Qwen3-VL-4B is a different
+checkpoint from Qwen-Image-2.1's Qwen3-VL-8B, so neither encoder substitutes for
+the other.
 
 A wrong `type` fails silently rather than loudly: a Mistral encoder loaded as
 `type=lumina2` loads without error and yields garbage.
@@ -164,7 +201,12 @@ fallback it replaces. If Comfy-Org or madebyollin ever publish a real
 
 The other decoders are published and need no work: `taesd_decoder` and
 `taesdxl_decoder` from `madebyollin/taesd`, `taef1_decoder` and `taesd3_decoder`
-from the community `vae_approx` mirrors. Qwen-Image-2.1 has none and cannot: its
+from the community `vae_approx` mirrors. Krea 2's latent format is `Wan21`, which
+asks for `lighttaew2_1`; `lightx2v/Autoencoders` publishes
+`lighttaew2_1.safetensors` at its repo root, so
+`hf download lightx2v/Autoencoders lighttaew2_1.safetensors --local-dir .\vendor\ComfyUI\models\vae_approx`
+lands it in place. It was trained for Wan 2.1's VAE rather than this one, so how
+well its preview tracks a Krea render is unmeasured. Qwen-Image-2.1 has none and cannot: its
 latent format declares no `taesd_decoder_name` and no approximate decoder exists
 for a 64-channel, 16x VAE.
 

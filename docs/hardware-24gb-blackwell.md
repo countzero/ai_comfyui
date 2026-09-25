@@ -443,7 +443,7 @@ at 17.1 GiB against 19.9.
 
 ## Installed on this box
 
-Verified against the filesystem 2026-09-20. Source repos and quant tables are
+Verified against the filesystem 2026-09-25. Source repos and quant tables are
 [`models.md`](./models.md).
 
 | Role                     | File                                          | GiB   |
@@ -457,10 +457,12 @@ Verified against the filesystem 2026-09-20. Source repos and quant tables are
 | Qwen-Image-2.1 encoder   | `qwen3vl_8b_int8_convrot.safetensors`         | 8.71  |
 | Qwen-Image-2.1 VAE       | `qwen_image_2.1_vae_bf16.safetensors`         | 0.63  |
 | FLUX.2 VAE               | `flux2-vae.safetensors`                       | 0.31  |
+| Krea 2 VAE               | `qwen_image_vae.safetensors`                  | 0.24  |
 | Upscaler                 | `4xNomos2_hq_dat2.pth`                        | 0.13  |
 
-86.76 GiB total. All three model families are complete, so every one of the
-eleven sidebar entries resolves its weights.
+87.00 GiB total. FLUX.2 and Qwen-Image-2.1 are complete, so 11 of the 13 sidebar
+entries resolve their weights. The two under `Krea 2` do not: their DiT and
+encoder are not installed yet, so no Krea 2 number exists for this box.
 
 `flux2-dev-Q4_K_M.gguf` (18.70) was benchmarked here but is no longer installed.
 

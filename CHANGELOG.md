@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [Workflows] Add Krea 2 Turbo Text to Image and Print workflows, with an optional LLM prompt enhancer that is off by default
+
 ### Fixed
 - [Documentation] Correct docs/models.md: the int8 quantization gate is by backend, not by GPU tensor cores, so the bf16 Qwen-Image-2.1 files are not required on an older NVIDIA card
 

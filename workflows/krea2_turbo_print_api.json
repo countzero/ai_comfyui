@@ -1,0 +1,154 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "krea2_turbo_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_4b_fp8_scaled.safetensors",
+      "type": "krea2"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "An Owl with a sleeping hat with the Name \"EGON\" on it"
+    }
+  },
+  "5": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "You are an expert prompt engineer for text-to-image models. Your task is to expand the user's prompt into a highly effective image-generation prompt.\n\nThink step by step about the request before writing the answer:\n- What is the subject and mood?\n- What visual styles, mediums, and lighting options would fit? Consider two or three alternatives and pick the one that best serves the caption.\n- What composition, framing, and grounded details will help the text-to-image model?\n\nThen output a single expanded prompt paragraph.\n\nFollow these rules strictly:\n1. **Faithfulness First:** Preserve all original subjects, actions, colors, and spatial relationships. Do not add new objects, props, characters, or animals unless the user clearly implies them.\n2. **Practical T2I Structure:** Write a prompt that a text-to-image model can parse cleanly. Group subjects with their own attributes and actions. Use grounded phrasing for poses, interactions, and spatial layout.\n3. **Style Planning Stays Internal:** Use your internal reasoning to choose style, medium, framing, and lighting. Do not emit planning tags or wrappers in the visible answer body.\n4. **Text Rendering:** If the user requests visible text, quotes, labels, or typography, specify the exact text clearly and wrap requested words in quotes.\n5. **Avoid Over-Specification:** Do not invent highly specific clothing, colors, materials, or scene details unless the input supports them.\n6. **Structure:** Write one cohesive paragraph after the thinking block. No bullets, JSON, or markdown.\n7. **Respect Existing Detail:** If the user's prompt is already detailed, lightly polish and finalize rather than heavily expanding — preserve their phrasing and direction.\n8. **Respect the Human Form:** Treat depictions of people with dignity. Assume clothing covers genitals and intimate anatomy.\n9. **Preserve User Medium:** When the user explicitly requests a medium (e.g. \"photo of\", \"photograph of\", \"illustration of\", \"painting of\", \"sketch of\", \"3D render of\"), honor it. Do not pivot to a different medium to avoid difficulty — match the user's stated intent.\n\nUser's Input:\n\n"
+    }
+  },
+  "6": {
+    "class_type": "StringConcatenate",
+    "inputs": {
+      "string_a": ["5", 0],
+      "string_b": ["4", 0],
+      "delimiter": ""
+    }
+  },
+  "7": {
+    "class_type": "TextGenerate",
+    "inputs": {
+      "clip": ["2", 0],
+      "prompt": ["6", 0],
+      "max_length": 512,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 0.7,
+      "sampling_mode.top_k": 64,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0.05,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 0,
+      "sampling_mode.presence_penalty": 0.0,
+      "thinking": false,
+      "use_default_template": true,
+      "mtp": "auto"
+    }
+  },
+  "8": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": false
+    }
+  },
+  "9": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": ["8", 0],
+      "on_false": ["4", 0],
+      "on_true": ["7", 0]
+    }
+  },
+  "10": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": ["9", 0]
+    }
+  },
+  "11": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": ["9", 0],
+      "clip": ["2", 0]
+    }
+  },
+  "12": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["11", 0]
+    }
+  },
+  "13": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 2048,
+      "batch_size": 1
+    }
+  },
+  "14": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["1", 0],
+      "seed": 42,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["11", 0],
+      "negative": ["12", 0],
+      "latent_image": ["13", 0],
+      "denoise": 1.0
+    }
+  },
+  "15": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["14", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "17": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+      "model_name": "4xNomos2_hq_dat2.pth"
+    }
+  },
+  "18": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+      "upscale_model": ["17", 0],
+      "image": ["15", 0]
+    }
+  },
+  "19": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["18", 0],
+      "upscale_method": "lanczos",
+      "width": 4472,
+      "height": 4472,
+      "crop": "disabled"
+    }
+  },
+  "16": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["19", 0],
+      "filename_prefix": "krea2_turbo_print"
+    }
+  }
+}
