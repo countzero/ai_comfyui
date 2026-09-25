@@ -68,7 +68,8 @@ on the model page before any commercial use. A 12B single-stream DiT on the
 
 The workflows load the fp8 Turbo file, which is native on both boxes. nvfp4 is
 native only where `supports_nvfp4_compute()` holds, which needs compute
-capability 10 or higher, so it would run on the Blackwell card and not on Ada.
+capability 10 or higher, so it would run on the Blackwell card and not on Ada;
+measured against fp8 in `hardware-24gb-blackwell.md` → *Krea 2*.
 **RAW** is the undistilled base that Krea publishes for LoRA training and does
 not recommend for inference; no workflow here loads it.
 
@@ -205,8 +206,9 @@ from the community `vae_approx` mirrors. Krea 2's latent format is `Wan21`, whic
 asks for `lighttaew2_1`; `lightx2v/Autoencoders` publishes
 `lighttaew2_1.safetensors` at its repo root, so
 `hf download lightx2v/Autoencoders lighttaew2_1.safetensors --local-dir .\vendor\ComfyUI\models\vae_approx`
-lands it in place. It was trained for Wan 2.1's VAE rather than this one, so how
-well its preview tracks a Krea render is unmeasured. Qwen-Image-2.1 has none and cannot: its
+lands it in place. It was trained for Wan 2.1's VAE rather than this one and still
+tracks a Krea render closely (`hardware-24gb-blackwell.md` → *Previews*).
+Qwen-Image-2.1 has none and cannot: its
 latent format declares no `taesd_decoder_name` and no approximate decoder exists
 for a 64-channel, 16x VAE.
 

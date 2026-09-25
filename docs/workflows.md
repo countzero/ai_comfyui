@@ -171,17 +171,17 @@ EmptyLatentImage(w,h) ───────────────────�
 ```
 
 Both Krea 2 workflows load the Turbo checkpoint, which is distilled for 8 steps
-at cfg 1, so the negative is `ConditioningZeroOut` and never evaluated. Three
-things are not obvious from the graph:
+at cfg 1, so the negative is `ConditioningZeroOut` and never evaluated. Not
+obvious from the graph:
 
 - **No sampling node.** `supported_models.Krea2` sets `shift: 1.15` on a
   `ModelType.FLUX` model, so it is `mu` under `flux_time_shift`, and 1.15 is the
   value Krea's own sampler pins for Turbo at every resolution.
 - **Do not copy `ModelSamplingFlux` out of Comfy-Org's style-reference
   template.** It interpolates `mu` over 256 to 4096 tokens and returns exactly
-  1.15 at 1024², but 3.23 at 2048², far from what Turbo was distilled at. At 1 MP
-  it is a no-op; above it, it moves the schedule. Derived from
-  `nodes_model_advanced.py`, not yet measured against a render.
+  1.15 at 1024², a no-op, but 3.23 at 2048², far from what Turbo was distilled
+  at, and applies even that unreliably (`docs/hardware-24gb-blackwell.md` →
+  *Krea 2*).
 - **The prompt enhancer is lazy.** A `PrimitiveBoolean` drives a
   `ComfySwitchNode` whose inputs are lazy (`comfy_extras/nodes_logic.py`), so
   with the toggle off `TextGenerate` is never scheduled and the prompt reaches
@@ -206,7 +206,7 @@ Whether a real decode happens is a property of the latent format, and
 | ------------- | -------------------- | ---------------------------- |
 | `Flux2`       | `taef2_decoder`      | decoded, correlates 0.998    |
 | `QwenImage21` | `None`               | latent2rgb, correlates 0.878 |
-| `Wan21`       | `lighttaew2_1`       | decoded, unmeasured          |
+| `Wan21`       | `lighttaew2_1`       | decoded, correlates 0.984    |
 
 Qwen-Image-2.1 therefore **cannot** have a decoded preview: no approximate
 decoder exists for its 64-channel, 16x VAE. Its preview is a linear projection,

@@ -35,20 +35,9 @@ though it is 33.02 GiB vs 18.70 and therefore *must* stream on a 24 GiB card.
 | **fp8mixed** | **44.3s**    | **213.2s**   |
 | speedup      | **2.00x**    | **1.58x**    |
 
-Why, from source: `ComfyUI-GGUF/ops.py:177` calls `dequantize_tensor(...)` and
-`dequant.py` does `d.view(torch.float16).to(dtype)`. **GGUF's 4-bit format is
-storage-only** — it dequantizes to bf16 before every matmul, so the quantisation
-buys zero compute and costs dequant overhead each forward pass. fp8 is native on
-sm_120 (`mm.supports_fp8_compute() == True`), so its matmuls run on fp8 tensor
-cores.
-
-The dequant overhead dominates PCIe bandwidth: a *streaming* 33 GiB fp8 model
-still doubles the speed of a *fully resident* 18.70 GiB GGUF.
-
-Output quality at matched seed is **comparable** — same composition, both render
-text cleanly. There is no visible quality win either way, only the speed.
-
-Keep GGUF only if you need the smaller disk/RAM footprint. There is **no NVFP4
+Why is [`models.md`](./models.md) → *fp8 beats GGUF, for an architectural
+reason*. At matched seed both render the same composition and clean text, so
+the speed is the only difference. There is **no NVFP4
 FLUX.2** — `split_files/diffusion_models/` contains just the one fp8 file.
 
 ## Steps measured (FLUX.2-dev)
@@ -265,10 +254,9 @@ upstream template ships.
 
 ### Steps at 2048², three prompts, three seeds
 
-An earlier version of this table compared one image at one seed and scored it
-with Laplacian variance. That was not enough to decide anything: lap.var rewards
-grain as readily as detail, so "sharper" and "noisier" score the same way. The
-prompt set below is in *The benchmark prompt set*.
+Laplacian variance cannot decide this alone: it rewards grain as readily as
+detail, so "sharper" and "noisier" score the same way. The prompt set is in *The
+benchmark prompt set*.
 
 | Steps | Mean time | s/step |
 | ----- | --------- | ------ |
@@ -387,6 +375,28 @@ measured 7.5s then 6.7s; the Ada box pays 7.4–8.4s for that same swap because 
 14.76 GiB cannot hold both. The settings above were tuned on Ada and are kept
 unchanged, since nothing in these numbers argues against them.
 
+## Krea 2
+
+8 steps, cfg 1, S1–S3 at three seeds each. A new prompt cost at most 2s over its
+repeats, since the set is co-resident:
+
+| Configuration       | Median | Peak VRAM |
+| ------------------- | ------ | --------- |
+| fp8, 2048²          | 61.0s  | 20.14 GiB |
+| fp8, 1440²          | 26.4s  | 19.71 GiB |
+| nvfp4, 2048²        | 58.5s  | 15.75 GiB |
+| Print tail, one run | 90.7s  | 16.90 GiB |
+
+**fp8 stays.** nvfp4 is 4% faster and 4.4 GiB lighter but changes the picture:
+MAD 9.6–42.2 against fp8 at the same seed, where two seeds differ by 48.7–56.0,
+and at S1 seed 42 the sign turns from amber to blue.
+
+**`ModelSamplingFlux` at 2048² is unreliable.** Freshly executed it moved S1
+seed 42 by MAD 43.4; served from the cache in eight further runs it rendered
+bit-identical to no node. The cause is not established.
+
+The enhancer adds 6.8s in one run (68.1s against 61.3s).
+
 ## The benchmark prompt set
 
 The prompts, the seeds and the scoring rules are [`benchmarks.md`](./benchmarks.md).
@@ -408,6 +418,7 @@ preview frame and the final render, same seed:
 | Klein 9B       | taef2 TAESD         | 0.998       |
 | Klein 9B       | latent2rgb          | 0.948       |
 | Qwen-Image-2.1 | latent2rgb (forced) | 0.878       |
+| Krea 2         | lighttaew2_1        | 0.984       |
 
 Costs 2.4% (91.0s against 88.8s at 2048², 25 steps). Qwen cannot be improved:
 its latent format declares no decoder. Its preview is soft rather than wrong.
@@ -457,12 +468,14 @@ Verified against the filesystem 2026-09-25. Source repos and quant tables are
 | Qwen-Image-2.1 encoder   | `qwen3vl_8b_int8_convrot.safetensors`         | 8.71  |
 | Qwen-Image-2.1 VAE       | `qwen_image_2.1_vae_bf16.safetensors`         | 0.63  |
 | FLUX.2 VAE               | `flux2-vae.safetensors`                       | 0.31  |
+| Krea 2 DiT (fp8)         | `krea2_turbo_fp8_scaled.safetensors`          | 12.24 |
+| Krea 2 DiT (nvfp4)       | `krea2_turbo_nvfp4.safetensors`               | 7.15  |
+| Krea 2 encoder           | `qwen3vl_4b_fp8_scaled.safetensors`           | 4.88  |
 | Krea 2 VAE               | `qwen_image_vae.safetensors`                  | 0.24  |
 | Upscaler                 | `4xNomos2_hq_dat2.pth`                        | 0.13  |
 
-87.00 GiB total. FLUX.2 and Qwen-Image-2.1 are complete, so 11 of the 13 sidebar
-entries resolve their weights. The two under `Krea 2` do not: their DiT and
-encoder are not installed yet, so no Krea 2 number exists for this box.
+111.27 GiB total. Every model family is complete, so all 13 sidebar entries
+resolve their weights.
 
 `flux2-dev-Q4_K_M.gguf` (18.70) was benchmarked here but is no longer installed.
 
@@ -473,4 +486,5 @@ costs an encoder reload:
 | ------------------------- | ----- | ----------- |
 | Qwen-Image-2.1, int8 pair | 16.10 | yes         |
 | Klein 9B, fp8 pair        | 17.17 | yes         |
+| Krea 2, fp8 set           | 17.36 | yes         |
 | FLUX.2-dev                | 44.76 | no, streams |
